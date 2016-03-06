@@ -1,4 +1,5 @@
 source("functions/WeighPositives.R")
+source("functions/Ensemble.R")
 
 ModelStack <- function(arglist)
 {
@@ -8,6 +9,9 @@ ModelStack <- function(arglist)
   bBadPosWeighting <- arglist$bBadPosWeighting
   if (bBadPosWeighting)
     print("Warning! Bad positive patient weighting is used. The result may be incorrect!")
+  
+  weakLearnerSeed <- arglist$weakLearnerSeed
+  posNegRatios <- arglist$posNegRatios
   
   bParallel <- arglist$bParallel
   if (bParallel)
@@ -70,8 +74,8 @@ ModelStack <- function(arglist)
       stop(paste("Error! To use the similarity score to weight positives, the ", 
            "input positive patients must have IDs.", sep=""))
   }
-  y <- dataset$HAE
-  X <- dataset[, (colnames(dataset) != "HAE")]
+  y <- as.factor(dataset$HAE)
+  X <- as.matrix(dataset[, (colnames(dataset) != "HAE")])
   
   # a little cleaning
   sums <- apply(X, 1, sum)
@@ -83,30 +87,37 @@ ModelStack <- function(arglist)
   
   X <- X[, colnames(X) != "LOOKBACK_DAYS"]
   
+  print("haven't explicitly normalise variables yet!")
+  
   #
   ## weigh every positive
   
   posWeights <- WeighPositives(y, X, posWeightMethod, similarityScoreFile)
   
-#   #
-#   ## modelling
-#   
-#   if (bSelfEval)
-#   {
-#     print("Self-evaluation modelling..")
-#     SelfEvalModel(y, X, posWeights)
-#     
-#   } else
-#   {
-#     print("Modelling without evaluation..")
-#     # ModelWithoutEval(y, X, posWeights)
-#   }
-#   
-#   runtime <- proc.time() - ptm
-#   print(paste("Time elapsed:", round(runtime[3],1), "seconds."))
-#   fileRunTime <- file(paste(resultDir, "runtime.txt", sep=""), "w")
-#   writeLines(paste(round(runtime["elapsed"],1), " seconds.", "\n", sep=""), fileRunTime)
-#   close(fileRunTime)
+  #
+  ## modelling
+  
+  if (bSelfEval)
+  {
+    print("Self-evaluation modelling..")
+    SelfEvalModel(y=y, X=X, posWeights=posWeights, 
+                  kEvalFolds=selfEval.kEvalFolds, kValiFolds=kValiFolds, 
+                  weakLearnerSeed=weakLearnerSeed,
+                  posNegRatios=posNegRatios,
+                  bParallel=bParallel, 
+                  resultDir)
+    
+  } else
+  {
+    print("Modelling without evaluation..")
+    # ModelWithoutEval(y, X, posWeights)
+  }
+  
+  runtime <- proc.time() - ptm
+  print(paste("Time elapsed:", round(runtime[3],1), "seconds."))
+  fileRunTime <- file(paste(resultDir, "runtime.txt", sep=""), "w")
+  writeLines(paste(round(runtime["elapsed"],1), " seconds.", "\n", sep=""), fileRunTime)
+  close(fileRunTime)
   
   if (bParallel)
   {
