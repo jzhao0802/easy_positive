@@ -99,7 +99,9 @@ CV_AllWeakLeaners <- function(y, X,
                               weakLearnerPool,
                               bParallel)
 {
-  valiFolds <- stratifySmallSample(y, kValiFolds)
+  y4Stratification <- rep(0, length(y))
+  y4Stratification[posWeightsTrainVali>0.5] <- 1
+  valiFolds <- stratifySmallSample(y4Stratification, kValiFolds)
   
   # standardise X
   X <- apply(X, 2, MinMaxStandardise)
@@ -192,9 +194,12 @@ SelfEvalModel <- function(y, X, posWeights,
   #
   ## stratify for ensemble evaluation 
   
-  a more sophisticated stratification is needed to make every fold have similar-sized
-  'pure' positive patients;
-  evalFolds <- stratifySmallSample(y, kEvalFolds)
+  # a more sophisticated stratification: every fold have similar-sized
+  # 'purer / easier' positive patients;
+  y4Stratification <- rep(0, length(y))
+  y4Stratification[posWeightsAllData>0.5] <- 1
+  evalFolds <- stratifySmallSample(y4Stratification, kEvalFolds)
+  
   weakLearnerPool <- 
     GenWeakLearnerPool(weakLearnerSeed, posNegRatios, resultDir)
   
