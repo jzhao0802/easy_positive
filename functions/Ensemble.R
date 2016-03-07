@@ -312,12 +312,36 @@ PredictWithAnEnsemble <- function(weakLearners, XEval,
 SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
 {
   n <- length(winnerLearners)
+  fileSummary <- 
+    file(paste(resultDir, 
+               "winnersSummary_EvalFold", 
+               iEvalFold, ".txt", sep=""), "w")
   for (iLearner in 1:length(winnerLearners))
   {
+    # summary
+    writeLines(paste("Winner ", iLearner, ": ", sep=""), sep="", fileSummary)
+    writeLines(paste(winnerLearners$signature$type, 
+                     ", ", sep=""), 
+               sep="", fileSummary)
+    paramNames <- names(winnerLearners$signature$hyperParams)
+    paramVals <- winnerLearners$signature$hyperParams
+    for (iParam in 1:length(paramNames))
+    {
+      writeLines(paste(paramNames[iParam],
+                       ":", paramVals[[paramNames[iParam]]],
+                       ", ", sep=""), sep="", fileSummary)
+    }
+    writeLines(paste("Positive-Negative Training Data Ratio:", 
+                     winnerLearners$signature$posNegRatio), fileSummary)
+    writeLines("", fileSummary)
+    
+    # the models and signatures
     filename <- paste(resultDir, "WeakLearner", iLearner, "Of", n, 
                       "_EvalFold", iEvalFold, ".rds")
     saveRDS(winnerLearners[[iLearner]], filename)
   }
+  
+  close(fileSummary)
 }
 
 SaveEvalResult <- function(resultDir, preds, labels)
