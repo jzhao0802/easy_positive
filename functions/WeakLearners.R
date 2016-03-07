@@ -208,7 +208,7 @@ PredictWithAWeakLearner <- function(model, X, learnerSignature)
     preds <- Predict_RF_CI(model=model, X=X)
     
   } else
-    stop(paste("Error! Weak learner type ", learnerSignature, " is not supported."))
+    stop(paste("Error! Weak learner type ", learnerSignature$type, " is not supported."))
   
   return (preds)
 }

@@ -231,6 +231,9 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           
           model <- TrainAWeakLearner(y[trainIDs], XTrain[trainIDs, ], 
                                      posWeightsTrain, learnerSignature)
+          
+          list(model=model, 
+               signature=learnerSignature)
         }
   } else 
   {
@@ -261,10 +264,60 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           
           model <- TrainAWeakLearner(y[trainIDs], XTrain[trainIDs, ], 
                                      posWeightsTrain, learnerSignature)
+          
+          list(model=model, 
+               signature=learnerSignature)
         }
   }
   
   return (learners)
+}
+
+PredictWithAnEnsemble <- function(weakLearners, XEval,
+                                  bParallel)
+{
+  if (bParallel)
+  {
+    predsAllWeakLearners <- 
+      foreach(
+        iLearner=(1:length(weakLearners)), 
+        .maxcombine=1e5,
+        .packages=c("glmnet", "e1071", "randomForest", "party", 
+                    "pROC", "pROC")
+        ) %dopar%
+      {
+        preds <- 
+          PredictWithAWeakLearner(weakLearners[[iLearner]]$model, 
+                                  XEval, weakLearners[[iLearner]]$signature)
+      }
+  } else 
+  {
+    predsAllWeakLearners <- 
+      foreach(
+        iLearner=(1:length(weakLearners)), 
+        .maxcombine=1e5,
+        .packages=c("glmnet", "e1071", "randomForest", "party", 
+                    "pROC", "pROC")
+      ) %do%
+      {
+        preds <- 
+          PredictWithAWeakLearner(weakLearners[[iLearner]]$model, 
+                                  XEval, weakLearners[[iLearner]]$signature)
+      }
+  }
+  
+  return (predsAllWeakLearners)
+}
+
+SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
+{
+  n <- length(winnerLearners)
+  for (iLearner in 1:length(winnerLearners))
+  {
+    filename <- paste(resultDir, "WeakLearner", iLearner, "Of", n, 
+                      "_EvalFold", iEvalFold, ".rds")
+    saveRDS(winnerLearners[[iLearner]], filename)
+  }
 }
 
 SaveEvalResult <- function(resultDir, preds, labels)
@@ -370,14 +423,13 @@ SelfEvalModel <- function(y, X, posWeights,
     
     # evaluate on the left-out fold
     predsAllData[-trainValiIDs] <-
-      PredictWithAllWinners(model, XEval, winnerLearners)
+      PredictWithAnEnsemble(weakLearners=winnerLearners, XEval=XEval, 
+                            bParallel=bParallel)
     
     
     # save the ensemble, the evaluation
     
-    SaveEnsemble(resultDir, iEvalFold, 
-                 length(weakLearnerPool), 
-                 winnerLearners)
+    SaveEnsemble(resultDir, iEvalFold, winnerLearners)
   }
   
   # save the evaluation result
