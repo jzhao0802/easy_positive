@@ -113,7 +113,6 @@ CV_AllWeakLeaners <- function(y, X,
   
   if (bParallel)
   {
-    stop("cbind below might need special care")
     predsAllLearners <- 
       foreach(iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
               .maxcombine=1e5,
@@ -161,16 +160,59 @@ CV_AllWeakLeaners <- function(y, X,
                   
                   predsAllData[-trainIDs] <- 
                     PredictWithAWeakLearner(model, XVali, learnerSignature)
-                  
-#                   rawPreds <- 
-#                     predict(model, XVali, decision.values=T)
-#                   predsAllData[-trainIDs] <- 
-#                     attr(rawPreds, "decision.values")
                 }
               }
   } else 
   {
-    stop("non-parallel version not implemented yet. ")
+    predsAllLearners <- 
+      foreach(iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
+              .maxcombine=1e5,
+              .packages=c("glmnet", "e1071", "randomForest", "party", 
+                          "pROC", "pROC")) %do%
+              {
+                learnerSignature <- weakLearnerPool[[iLearner]]
+                
+                predsAllData <- rep(1e5, nrow(X))
+                
+                for (iFold in 1:kValiFolds)
+                {
+                  trainIDs <- valiFolds[[iFold]]
+                  yTrain <- y[trainIDs]
+                  # validation data extracted before subsampling training
+                  XVali <- X[-trainIDs,]
+                  yVali <- y[-trainIDs]
+                  
+                  # sub-sample a fraction of the negatives
+                  
+                  trainIDsPos <- trainIDs[yTrain == 1]
+                  trainIDsNeg <- trainIDs[yTrain == 0]
+                  nNegs2Sample <- 
+                    ceiling(length(trainIDsPos) / posWeightsTrainVali)
+                  if (nNegs2Sample > length(trainIDsNeg))
+                    nNegs2Sample <- length(trainIDsNeg)
+                  trainIDsNegSubSampled <- 
+                    sample(trainIDsNeg)[1:nNegs2Sample]
+                  trainIDs <- c(trainIDsPos, trainIDsNeg)
+                  
+                  # swap to make sure the first training datum is labelled 1
+                  if (yTrain[1] != 1)
+                  {
+                    trainIDs <- Swap2MakeFirstPositive(yTrain, trainIDs)
+                  }
+                  
+                  XTrain <- X[trainIDs,]
+                  yTrain <- y[trainIDs]
+                  
+                  posWeightsTrain <- posWeightsTrainVali[trainIDs]
+                  
+                  # 
+                  model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
+                                             learnerSignature)
+                  
+                  predsAllData[-trainIDs] <- 
+                    PredictWithAWeakLearner(model, XVali, learnerSignature)
+                }
+              }
   }
   
   # before returning, select the top 5% using accuracy + independence
