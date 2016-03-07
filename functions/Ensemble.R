@@ -2,11 +2,14 @@ library(foreach)
 library(glmnet)
 library(e1071)
 library(randomForest)
-library(pROC)
 library(party)
+library(pROC)
+library(ROCR)
+
 
 source("functions/manualStratify.R")
 source("functions/WeakLearners.R")
+source("functions/Aggregate.R")
 
 Swap2MakeFirstPositive <- function(yTrain, trainIDs)
 {
@@ -111,10 +114,11 @@ CV_AllWeakLeaners <- function(y, X,
   if (bParallel)
   {
     stop("cbind below might need special care")
-    PredsAllLearners <- 
+    predsAllLearners <- 
       foreach(iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
               .maxcombine=1e5,
-              .packages=c("glmnet", "e1071", "randomForest", "party", "pROC")) %dopar%
+              .packages=c("glmnet", "e1071", "randomForest", "party", 
+                          "pROC", "pROC")) %dopar%
               {
                 learnerSignature <- weakLearnerPool[[iLearner]]
                 
@@ -172,7 +176,8 @@ CV_AllWeakLeaners <- function(y, X,
   # before returning, select the top 5% using accuracy + independence
   
   winnerPortion <- 0.05
-  winnerIndices <- SelectWinners(PredsAllLearners, y, winnerPortion)
+  winnerIndices <- SelectWinners(predsAllLearners, y, winnerPortion,
+                                 threshold)
   
   return (winnerIndices)
 }
