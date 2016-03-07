@@ -12,7 +12,7 @@ CalPrecisionAtRecall <- function(preds, labels, recall)
   predsObj <- prediction(predictions=preds, labels=labels)
   perf <- performance(predsObj, measure="prec", x.measure="rec")
   
-  precision <- approx(perf@x.values, perf@y.values, xout=0.05)
+  precision <- approx(perf@x.values[[1]], perf@y.values[[1]], xout=0.05)
   return (CalPrecisionAtRecall)
 }
 

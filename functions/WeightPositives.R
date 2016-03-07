@@ -3,7 +3,7 @@ library(FNN)
 CON_POS_WEIGHT_METHOD <- list(KNN=1,
                               SIMILARITY_SCORE=2)
 
-WeighPositives <- function(y, X, posWeightMethod, similarityScoreFile="", 
+WeightPositives <- function(y, X, posWeightMethod, similarityScoreFile="", 
                            resultDir)
 {
   if (posWeightMethod == CON_POS_WEIGHT_METHOD$KNN)

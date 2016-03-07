@@ -11,16 +11,6 @@ source("functions/manualStratify.R")
 source("functions/WeakLearners.R")
 source("functions/Aggregate.R")
 
-Swap2MakeFirstPositive <- function(yTrain, trainIDs)
-{
-  firstPosLoc <- (which(yTrain==1))[1]
-  tmp <- trainIDs[1]
-  trainIDs[1] <- trainIDs[firstPosLoc]
-  trainIDs[firstPosLoc] <- tmp
-  
-  return (trainIDs)
-}
-
 MinMaxStandardise <- function(vec, minVal=NULL, maxVal=NULL)
 {
   if (((is.null(minVal)) & (!is.null(maxVal))) | 
@@ -106,9 +96,6 @@ CV_AllWeakLeaners <- function(y, X,
   y4Stratification[posWeightsTrainVali>0.5] <- 1
   valiFolds <- stratifySmallSample(y4Stratification, kValiFolds)
   
-  # standardise X
-  X <- apply(X, 2, MinMaxStandardise)
-  
   # 
   
   if (bParallel)
@@ -127,6 +114,7 @@ CV_AllWeakLeaners <- function(y, X,
                 {
                   trainIDs <- valiFolds[[iFold]]
                   yTrain <- y[trainIDs]
+                  XTrain <- X[trainIDs,]
                   # validation data extracted before subsampling training
                   XVali <- X[-trainIDs,]
                   yVali <- y[-trainIDs]
@@ -136,21 +124,13 @@ CV_AllWeakLeaners <- function(y, X,
                   trainIDsPos <- trainIDs[yTrain == 1]
                   trainIDsNeg <- trainIDs[yTrain == 0]
                   nNegs2Sample <- 
-                    ceiling(length(trainIDsPos) / posWeightsTrainVali)
-                  if (nNegs2Sample > length(trainIDsNeg))
-                    nNegs2Sample <- length(trainIDsNeg)
-                  trainIDsNegSubSampled <- 
-                    sample(trainIDsNeg)[1:nNegs2Sample]
-                  trainIDs <- c(trainIDsPos, trainIDsNeg)
-                  
-                  # swap to make sure the first training datum is labelled 1
-                  if (yTrain[1] != 1)
+                    ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
+                  if (nNegs2Sample < length(trainIDsNeg))
                   {
-                    trainIDs <- Swap2MakeFirstPositive(yTrain, trainIDs)
+                    trainIDsNegSubSampled <- 
+                      sample(trainIDsNeg)[1:nNegs2Sample]
+                    trainIDs <- c(trainIDsPos, trainIDsNeg)
                   }
-                  
-                  XTrain <- X[trainIDs,]
-                  yTrain <- y[trainIDs]
                   
                   posWeightsTrain <- posWeightsTrainVali[trainIDs]
                   
@@ -178,6 +158,7 @@ CV_AllWeakLeaners <- function(y, X,
                 {
                   trainIDs <- valiFolds[[iFold]]
                   yTrain <- y[trainIDs]
+                  XTrain <- X[trainIDs,]
                   # validation data extracted before subsampling training
                   XVali <- X[-trainIDs,]
                   yVali <- y[-trainIDs]
@@ -187,21 +168,13 @@ CV_AllWeakLeaners <- function(y, X,
                   trainIDsPos <- trainIDs[yTrain == 1]
                   trainIDsNeg <- trainIDs[yTrain == 0]
                   nNegs2Sample <- 
-                    ceiling(length(trainIDsPos) / posWeightsTrainVali)
-                  if (nNegs2Sample > length(trainIDsNeg))
-                    nNegs2Sample <- length(trainIDsNeg)
-                  trainIDsNegSubSampled <- 
-                    sample(trainIDsNeg)[1:nNegs2Sample]
-                  trainIDs <- c(trainIDsPos, trainIDsNeg)
-                  
-                  # swap to make sure the first training datum is labelled 1
-                  if (yTrain[1] != 1)
+                    ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
+                  if (nNegs2Sample < length(trainIDsNeg))
                   {
-                    trainIDs <- Swap2MakeFirstPositive(yTrain, trainIDs)
+                    trainIDsNegSubSampled <- 
+                      sample(trainIDsNeg)[1:nNegs2Sample]
+                    trainIDs <- c(trainIDsPos, trainIDsNeg)
                   }
-                  
-                  XTrain <- X[trainIDs,]
-                  yTrain <- y[trainIDs]
                   
                   posWeightsTrain <- posWeightsTrainVali[trainIDs]
                   
@@ -225,11 +198,101 @@ CV_AllWeakLeaners <- function(y, X,
   return (winnerIndices)
 }
 
+TrainWinnerLearners <- function(y, X, posWeightsTrainVali, 
+                                weakLearnerPool, winnerIndices,
+                                bParallel)
+{
+  if (bParallel)
+  {
+    learners <- 
+      foreach(
+        iLearner=(1:length(winnerIndices)), 
+        .maxcombine=1e5,
+        .packages=c("glmnet", "e1071", "randomForest", "party", 
+                    "pROC", "pROC")) %dopar%
+        {
+          learnerSignature <- weakLearnerPool[[winnerIndices[iLearner]]]
+          
+          # sub-sample a fraction of the negatives
+          
+          trainIDs <- 1:length(y)
+          trainIDsPos <- trainIDs[yTrain == 1]
+          trainIDsNeg <- trainIDs[yTrain == 0]
+          nNegs2Sample <- 
+            ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
+          if (nNegs2Sample < length(trainIDsNeg))
+          {
+            trainIDsNegSubSampled <- 
+              sample(trainIDsNeg)[1:nNegs2Sample]
+            trainIDs <- c(trainIDsPos, trainIDsNeg)
+          }
+            
+          posWeightsTrain <- posWeightsTrainVali[trainIDs]
+          
+          model <- TrainAWeakLearner(y[trainIDs], XTrain[trainIDs, ], 
+                                     posWeightsTrain, learnerSignature)
+        }
+  } else 
+  {
+    learners <- 
+      foreach(
+        iLearner=(1:length(winnerIndices)), 
+        .maxcombine=1e5,
+        .packages=c("glmnet", "e1071", "randomForest", "party", 
+                    "pROC", "pROC")) %dopar%
+        {
+          learnerSignature <- weakLearnerPool[[winnerIndices[iLearner]]]
+          
+          # sub-sample a fraction of the negatives
+          
+          trainIDs <- 1:length(y)
+          trainIDsPos <- trainIDs[yTrain == 1]
+          trainIDsNeg <- trainIDs[yTrain == 0]
+          nNegs2Sample <- 
+            ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
+          if (nNegs2Sample < length(trainIDsNeg))
+          {
+            trainIDsNegSubSampled <- 
+              sample(trainIDsNeg)[1:nNegs2Sample]
+            trainIDs <- c(trainIDsPos, trainIDsNeg)
+          }
+          
+          posWeightsTrain <- posWeightsTrainVali[trainIDs]
+          
+          model <- TrainAWeakLearner(y[trainIDs], XTrain[trainIDs, ], 
+                                     posWeightsTrain, learnerSignature)
+        }
+  }
+  
+  return (learners)
+}
+
+SaveEvalResult <- function(resultDir, preds, labels)
+{
+  write.table(preds, sep=",", 
+              file=paste(resultDir, "preds.csv", sep=""), 
+              col.names=T, row.names=F)
+  
+  predsObj <- prediction(predictions=preds[,2], labels=labels)
+  perf <- performance(predsObj, measure="prec", x.measure="rec")
+  write.table(cbind(perf@x.values[[1]],perf@y.values[[1]]), sep=",", 
+              file=paste(resultDir, "PR.csv", sep=""), 
+              col.names=c("recall", "precision"),
+              row.names=F)
+  
+  precision0.05Recall <- 
+    approx(perf@x.values[[1]], perf@y.values[[1]], xout=0.05)
+  write.table(precision0.05Recall, sep=",", 
+              file=paste(resultDir, "precision0.05Recall.csv", sep=""), 
+              col.names=F, row.names=F)
+}
+
 # SelfEvalModel evaluates the trained ensemble on a subset of the input data
 SelfEvalModel <- function(y, X, posWeights,
                           kEvalFolds, kValiFolds, 
                           weakLearnerSeed,
                           posNegRatios,
+                          obsIDs=NULL,
                           bParallel, 
                           resultDir)
 {
@@ -254,6 +317,8 @@ SelfEvalModel <- function(y, X, posWeights,
   #
   ## ensemble evaluation
   
+  predsAllData <- rep(1e5,length(y))
+  
   for (iEvalFold in 1:length(evalFolds))
   {
     trainValiIDs <- evalFolds[[iEvalFold]]
@@ -268,29 +333,57 @@ SelfEvalModel <- function(y, X, posWeights,
     yTrainVali <- y[trainValiIDs]
     yEval <- y[-trainValiIDs]
     
+    # standardise the training + validation data
+    
+    XTrainVali <- apply(XTrainVali, 2, MinMaxStandardise)
+    
+    # standardise the evaluation data accordingly
+    
+    for (iVar in 1:ncol(XEval))
+    {
+      r <- max(XTrainVali[, iVar]) - min(XTrainVali[, iVar])
+      if (r != 0)
+      {
+        XEval[, iVar] <- (XEval - min(XTrainVali)) / r
+      }
+    }
+    
+    # 
+    
     posWeightsTrainVali <- posWeightsAllData[trainValiIDs]
     
-    cvResult <- CV_AllWeakLeaners(y=yTrainVali, X=XTrainVali, 
-                                  kValiFolds=kValiFolds, 
-                                  posWeightsTrainVali=posWeightsTrainVali, 
-                                  weakLearnerPool=weakLearnerPool,
-                                  bParallel=bParallel)
-    
-    # select the best 5% (maybe should be within cv)
-    
-    
+    winnerIndices <- 
+      CV_AllWeakLeaners(y=yTrainVali, X=XTrainVali, 
+                        kValiFolds=kValiFolds, 
+                        posWeightsTrainVali=posWeightsTrainVali, 
+                        weakLearnerPool=weakLearnerPool,
+                        bParallel=bParallel)
     
     # train the selected using all the trainVali data
-    
+    winnerLearners <- 
+      TrainWinnerLearners(y=yTrainVali, X=XTrainVali, 
+                          posWeightsTrainVali=posWeightsTrainVali, 
+                          weakLearnerPool=weakLearnerPool,
+                          winnerIndices=winnerIndices,
+                          bParallel=bParallel)
     
     
     # evaluate on the left-out fold
-    standardise the evaluation data using min/max computed from cv
-    apply(X, 2, MinMaxStandardise, minVal=)
+    predsAllData[-trainValiIDs] <-
+      PredictWithAllWinners(model, XEval, winnerLearners)
+    
     
     # save the ensemble, the evaluation
+    
+    SaveEnsemble(resultDir, iEvalFold, 
+                 length(weakLearnerPool), 
+                 winnerLearners)
   }
   
-  # might not be necessary to estimate another ensemble using all x and y
-  # if that's needed, do it in another funciton
+  # save the evaluation result
+  
+  if (!is.null(obsIDs))
+    predsAllData <- cbind(obsIDs, predsAllData)
+  colnames(predsAllData) <- c("ObservationID", "Prediction")
+  SaveEvalResult(resultDir, preds=predsAllData, labels=y)
 }

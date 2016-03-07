@@ -19,6 +19,16 @@ CON_WEAK_LEARNER_TYPES <- list(LR_LASSO=1,
 ################################################################################
 
 
+Swap2MakeFirstPositive <- function(yTrain, trainIDs)
+{
+  firstPosLoc <- (which(yTrain==1))[1]
+  tmp <- trainIDs[1]
+  trainIDs[1] <- trainIDs[firstPosLoc]
+  trainIDs[firstPosLoc] <- tmp
+  
+  return (trainIDs)
+}
+
 Train_A_LR_LASSO <- function(y, X, observationWeights, hyperParams)
 {
   logLambdaSeq <- c(hyperParams$logLambda-1, 
@@ -35,6 +45,10 @@ Train_A_LR_LASSO <- function(y, X, observationWeights, hyperParams)
 
 Train_A_SVM_LIN <- function(y, X, classWeights, hyperParams)
 {
+  trainIDs <- Swap2MakeFirstPositive(y, 1:length(y))
+  y <- y[trainIDs]
+  X <- X[trainIDs,]
+  
   model <- svm(y=y, x=X, 
                scale=rep(F, length(y)),
                type="C-classification", kernel="linear",
@@ -46,6 +60,10 @@ Train_A_SVM_LIN <- function(y, X, classWeights, hyperParams)
 
 Train_A_SVM_RAD <- function(y, X, classWeights, hyperParams)
 {
+  trainIDs <- Swap2MakeFirstPositive(y, 1:length(y))
+  y <- y[trainIDs]
+  X <- X[trainIDs,]
+  
   model <- svm(y=y, x=X, 
                scale=rep(F, length(y)),
                type="C-classification", kernel="radial",
@@ -94,8 +112,6 @@ TrainAWeakLearner <- function(y, X,
   {
     posIDs2Remove <- (y==1) & (posWeights <= 0.5)
     trainIDs <- (1:length(y))[!(1:length(y)) %in% posIDs2Remove]
-    yTmp <- y[trainIDs]
-    trainIDs <- Swap2MakeFirstPositive(yTmp, (!(1:length(y)) %in% posIDs2Remove))
     y <- y[trainIDs]
     X <- X[trainIDs,]
     weights <- 1/table(y)

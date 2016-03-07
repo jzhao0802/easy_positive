@@ -1,4 +1,4 @@
-source("functions/WeighPositives.R")
+source("functions/WeightPositives.R")
 source("functions/Ensemble.R")
 
 ModelStack <- function(arglist)
@@ -85,6 +85,13 @@ ModelStack <- function(arglist)
   X <- X[, ((maxes - mins) != 0)] # remove constant variables
   X <- apply(X, 2, function(v) (v-min(v)) / (max(v)-min(v)))
   
+  if (any(colnames(X) == "PATIENT_ID"))
+  {
+    patientIDs <- X$PATIENT_ID
+    X <- X[, (colnames(X) != "PATIENT_ID")]
+  } else
+    patientIDs <- NULL
+  
   X <- X[, colnames(X) != "LOOKBACK_DAYS"]
   
   print("haven't explicitly normalise variables yet!")
@@ -92,7 +99,7 @@ ModelStack <- function(arglist)
   #
   ## weigh every positive
   
-  posWeights <- WeighPositives(y, X, posWeightMethod, similarityScoreFile)
+  posWeights <- WeightPositives(y, X, posWeightMethod, similarityScoreFile)
   
   #
   ## modelling
@@ -103,7 +110,8 @@ ModelStack <- function(arglist)
     SelfEvalModel(y=y, X=X, posWeights=posWeights, 
                   kEvalFolds=selfEval.kEvalFolds, kValiFolds=kValiFolds, 
                   weakLearnerSeed=weakLearnerSeed,
-                  posNegRatios=posNegRatios,
+                  posNegRatios=posNegRatios, 
+                  obsIDs=patientIDs,
                   bParallel=bParallel, 
                   resultDir)
     
