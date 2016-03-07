@@ -3,10 +3,18 @@ library(compiler)
 
 stratifySmallSample <- cmpfun(function(y, k_folds)
 {
+  if (!(all(levels(y) %in% c(0,1))))
+  {
+    stop(paste("Error! Invalid y-values for stratification. ", 
+               "stratifySmallSample currently only supports one type ",
+               "of y values: c(0, 1). "))
+  }
+  
+  
   # get the positive and negative
   
-  pos_indices <- which(y>0)
-  neg_indices <- which(y<=0)
+  pos_indices <- which(y==1)
+  neg_indices <- which(y==0)
   pos_indices <- sample(pos_indices)
   neg_indices <- sample(neg_indices)
   

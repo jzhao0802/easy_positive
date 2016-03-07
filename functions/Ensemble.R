@@ -156,7 +156,7 @@ CV_AllWeakLeaners <- function(y, X,
                                              learnerSignature)
                   
                   predsAllData[-trainIDs] <- 
-                    PredictWithAWeakLearner(model, XVali)
+                    PredictWithAWeakLearner(model, XVali, learnerSignature)
                   
 #                   rawPreds <- 
 #                     predict(model, XVali, decision.values=T)
