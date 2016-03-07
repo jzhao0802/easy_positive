@@ -176,6 +176,7 @@ CV_AllWeakLeaners <- function(y, X,
   # before returning, select the top 5% using accuracy + independence
   
   winnerPortion <- 0.05
+  threshold <- 0.6
   winnerIndices <- SelectWinners(predsAllLearners, y, winnerPortion,
                                  threshold)
   
