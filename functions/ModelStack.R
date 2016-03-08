@@ -49,6 +49,9 @@ ModelStack <- function(arglist)
     
     
     similarityScoreFile <- arglist$similarityScoreFile
+  } else
+  {
+    similarityScoreFile <- NULL
   }
   
   ptm <- proc.time()
@@ -67,23 +70,19 @@ ModelStack <- function(arglist)
   
   dataset <- read.csv(paste(dataDir, "CleanDataB4Similarity.csv", sep=""), 
            header=TRUE, sep=",", check.names=FALSE)
-  if (!bBadPosWeighting)
-  {
-    if ((posWeightMethod == CON_POS_WEIGHT_METHOD$SIMILARITY_SCORE) & 
-      (!any(colnames(dataset) %in% c("PATIENT_ID"))))
-      stop(paste("Error! To use the similarity score to weight positives, the ", 
-           "input positive patients must have IDs.", sep=""))
-  }
+#   if (bBadPosWeighting)
+#   {
+#     if ((posWeightMethod == CON_POS_WEIGHT_METHOD$SIMILARITY_SCORE) & 
+#       (!any(colnames(dataset) %in% c("PATIENT_ID"))))
+#       stop(paste("Error! To use the similarity score to weight positives, the ", 
+#            "input positive patients must have IDs.", sep=""))
+#   }
   y <- as.factor(dataset$HAE)
   X <- as.matrix(dataset[, (colnames(dataset) != "HAE")])
   
   # a little cleaning
   sums <- apply(X, 1, sum)
   X <- X[(sums != 0), ] # remove all-zero patients
-  mins <- apply(X, 2, min)
-  maxes <- apply(X, 2, max)
-  X <- X[, ((maxes - mins) != 0)] # remove constant variables
-  X <- apply(X, 2, function(v) (v-min(v)) / (max(v)-min(v)))
   
   if (any(colnames(X) == "PATIENT_ID"))
   {
@@ -93,8 +92,6 @@ ModelStack <- function(arglist)
     patientIDs <- NULL
   
   X <- X[, colnames(X) != "LOOKBACK_DAYS"]
-  
-  print("haven't explicitly normalise variables yet!")
   
   #
   ## weigh every positive
