@@ -34,7 +34,7 @@ Train_A_LR_LASSO <- function(y, X, observationWeights, hyperParams)
   logLambdaSeq <- c(hyperParams$logLambda-1, 
                     hyperParams$logLambda, 
                     hyperParams$logLambda+1)
-  lambdaSeq <- exp(logLambdaSeq)
+  lambdaSeq <- 10^(logLambdaSeq)
   
   model <- glmnet(X,y, family="binomial", 
                   weights=observationWeights,
@@ -52,7 +52,7 @@ Train_A_SVM_LIN <- function(y, X, classWeights, hyperParams)
   model <- svm(y=y, x=X, 
                scale=rep(F, length(y)),
                type="C-classification", kernel="linear",
-               cost=exp(hyperParams$logC),
+               cost=10^(hyperParams$logC),
                class.weights=classWeights, probability=T)
   
   return (model)
@@ -67,7 +67,7 @@ Train_A_SVM_RAD <- function(y, X, classWeights, hyperParams)
   model <- svm(y=y, x=X, 
                scale=rep(F, length(y)),
                type="C-classification", kernel="radial",
-               cost=exp(hyperParams$logC), gamma=exp(hyperParams$logGamma),
+               cost=10^(hyperParams$logC), gamma=10^(hyperParams$logGamma),
                class.weights=classWeights, probability=T)
   
   return (model)
@@ -192,7 +192,7 @@ PredictWithAWeakLearner <- function(model, X, learnerSignature)
   if (learnerSignature$type == CON_WEAK_LEARNER_TYPES$LR_LASSO)
   {
     preds <- Predict_LR_LASSO(model=model, X=X, 
-                              lambda=exp(learnerSignature$hyperParams$logLambda))
+                              lambda=10^(learnerSignature$hyperParams$logLambda))
     
   } else if ((learnerSignature$type == CON_WEAK_LEARNER_TYPES$SVM_LIN) | 
              (learnerSignature$type == CON_WEAK_LEARNER_TYPES$SVM_RAD))
