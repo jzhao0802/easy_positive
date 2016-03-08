@@ -96,7 +96,8 @@ ModelStack <- function(arglist)
   #
   ## weigh every positive
   
-  posWeights <- WeightPositives(y, X, posWeightMethod, similarityScoreFile)
+  posWeights <- WeightPositives(y, X, posWeightMethod, similarityScoreFile, 
+                                resultDir)
   
   #
   ## modelling
