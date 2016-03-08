@@ -41,16 +41,20 @@ WeightPositives <- function(y, X, posWeightMethod, similarityScoreFile="",
   # save for investigation
   if (any(colnames(X) == "PATIENT_ID"))
   {
-    weightMat <- cbind(X$PATIENT_ID, weights)
+    # weightMat <- cbind(X$PATIENT_ID, weights)
+    weightMat <- weights
     colnames(weightMat) <- c("PATIENT_ID", "weight")
     
   } else
   {
-    weightMat <- matrix(weights, ncol=1)
+    weightMat <- matrix(weights[,2], ncol=1)
     colnames(weightMat) <- "weight"
   }
   
   # make sure there's no 0 weights, for the ease of identifying positive weights
+  print(paste("class(weights):", class(weights)))
+  print(paste("dim(weights):", dim(weights)))
+  print(paste("class(weightMat[1,1]):", class(weightMat[1,1])))
   weightMat[weightMat==0] <- weightMat[weightMat==0] + 1e-6
   
   write.table(weightMat, sep=",", row.names=F,
