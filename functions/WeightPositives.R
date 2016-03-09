@@ -1,10 +1,16 @@
 library(FNN)
+library(dplyr)
 
 CON_POS_WEIGHT_METHOD <- list(KNN=1,
                               SIMILARITY_SCORE=2)
 
-WeightPositives <- function(y, X, posWeightMethod, similarityScoreFile="", 
-                           resultDir)
+#
+# Elements in the output weight vector are in the same order as all the positives
+# in the input input data
+#
+WeightPositives <- function(y, X, posPatientIDsInData, 
+                            posWeightMethod, similarityScoreFile="", 
+                            resultDir)
 {
   if (posWeightMethod == CON_POS_WEIGHT_METHOD$KNN)
   {
@@ -29,36 +35,38 @@ WeightPositives <- function(y, X, posWeightMethod, similarityScoreFile="",
                  "because none of the positive patients has any positive neighbours."))
     weights <- weights / max(weights)
     
+    return (weights)
+    
   } else if (posWeightMethod == CON_POS_WEIGHT_METHOD$SIMILARITY_SCORE)
   {
+    if (is.null(posPatientIDsInData))
+    {
+      stop(paste("Error! In order to use SIMILARITY_SCORE for WeightPositives, ", 
+                 "the input data must have the column of 'PATIENT_ID'."))
+    }
     print("Warning! This is just a temporary solution for SIMILARITY_SCORE. ")
     print("A formal solution will need to merge positive patients via PATIENT_ID.")
     weights <- read.csv(similarityScoreFile, header=T, check.names=F, sep=",")
     
-  } else
-    stop("Error! Invalid posWeightMethod value!")
-  
-  # save for investigation
-  if (any(colnames(X) == "PATIENT_ID"))
-  {
-    # weightMat <- cbind(X$PATIENT_ID, weights)
-    weightMat <- weights
-    colnames(weightMat) <- c("PATIENT_ID", "weight")
+    # make sure that the order is the same as the positives in the input data
+    posPatientIDsInData <- matrix(posPatientIDsInData, ncol=1)
+    colnames(posPatientIDsInData) <- "ID"
+    posPatientIDsInData <- as.data.frame(posPatientIDsInData)
+    colnames(weights) <- c("ID", "weight")
+    weights <- as.data.frame(weights)
+    weightDF <- left_join(posPatientIDsInData, weights)
+    
+    # save for investigation
+    
+    # make sure there's no 0 weights, for the ease of identifying weights for
+    # positive patients among all patients
+    weightDF$weight[weightDF$weight==0] <- 1e-6
+    
+    write.table(weightDF, sep=",", row.names=F,
+                file=paste(resultDir, "posWeights.csv", sep=""))
+    
+    return (weightDF$weight)
     
   } else
-  {
-    weightMat <- matrix(weights[,2], ncol=1)
-    colnames(weightMat) <- "weight"
-  }
-  
-  # make sure there's no 0 weights, for the ease of identifying positive weights
-  print(paste("class(weights):", class(weights)))
-  print(paste("dim(weights):", dim(weights)))
-  print(paste("class(weightMat[1,1]):", class(weightMat[1,1])))
-  weightMat[weightMat==0] <- weightMat[weightMat==0] + 1e-6
-  
-  write.table(weightMat, sep=",", row.names=F,
-              file=paste(resultDir, "posWeights.csv", sep=""))
-  
-  return (weights)
+    stop("Error! Invalid posWeightMethod value!")
 }

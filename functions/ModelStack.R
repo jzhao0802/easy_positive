@@ -1,3 +1,6 @@
+library(doParallel)
+library(parallel)
+
 source("functions/WeightPositives.R")
 source("functions/Ensemble.R")
 
@@ -78,7 +81,7 @@ ModelStack <- function(arglist)
 #            "input positive patients must have IDs.", sep=""))
 #   }
   y <- as.factor(dataset$HAE)
-  X <- as.matrix(dataset[, (colnames(dataset) != "HAE")])
+  X <- data.matrix(dataset[, (colnames(dataset) != "HAE")])
   
   # a little cleaning
   sums <- apply(X, 1, sum)
@@ -86,7 +89,7 @@ ModelStack <- function(arglist)
   
   if (any(colnames(X) == "PATIENT_ID"))
   {
-    patientIDs <- X$PATIENT_ID
+    patientIDs <- X[, "PATIENT_ID"]
     X <- X[, (colnames(X) != "PATIENT_ID")]
   } else
     patientIDs <- NULL
@@ -94,10 +97,12 @@ ModelStack <- function(arglist)
   X <- X[, colnames(X) != "LOOKBACK_DAYS"]
   
   #
-  ## weigh every positive
+  ## weight every positive
   
-  posWeights <- WeightPositives(y, X, posWeightMethod, similarityScoreFile, 
-                                resultDir)
+  posPatientIDs <- patientIDs[y==1]
+  posWeights <- WeightPositives(y, X, posPatientIDsInData=posPatientIDs, 
+                                posWeightMethod, 
+                                similarityScoreFile, resultDir)
   
   #
   ## modelling
