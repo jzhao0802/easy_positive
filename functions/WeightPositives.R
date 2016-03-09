@@ -50,9 +50,9 @@ WeightPositives <- function(y, X, posPatientIDsInData,
     
     # make sure that the order is the same as the positives in the input data
     posPatientIDsInData <- matrix(posPatientIDsInData, ncol=1)
-    colnames(posPatientIDsInData) <- "ID"
+    colnames(posPatientIDsInData) <- "PATIENT_ID"
     posPatientIDsInData <- as.data.frame(posPatientIDsInData)
-    colnames(weights) <- c("ID", "weight")
+    colnames(weights) <- c("PATIENT_ID", "weight")
     weights <- as.data.frame(weights)
     weightDF <- left_join(posPatientIDsInData, weights)
     
