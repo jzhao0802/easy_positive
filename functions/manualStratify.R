@@ -3,6 +3,9 @@ library(compiler)
 
 DivideIntoFolds <- function(IDs, kFolds)
 {
+  if (length(IDs) < kFolds)
+    stop("Error! Number of data is smaller than kFolds!")
+  
   avNDataPerFold <- length(IDs) / kFolds
   pointer <- 1
   frac <- 0
@@ -65,16 +68,6 @@ StratifyEasyDifficultPositives <- function(y, posWeightsAllData, kFolds)
   negIDs <- sample(negIDs, kFolds)
   
   # assign to folds
-#   avNEasyPoses <- length(easyPosIDs) / kFolds
-#   avNDifficultPoses <- length(difficultPosIDs) / kFolds
-#   avNNegs <- length(negIDs) / kFolds
-  
-#   easyPosPointer <- 1
-#   diffPosPointer <- 1
-#   negPointer <- 1
-#   easyPosFrac <- 0
-#   diffPosFrac <- 0
-#   negFrac <- 0
   
   easyPos_IDsAllFolds <- DivideIntoFolds(easyPosIDs, kFolds)
   difficultPos_IDsAllFolds <- DivideIntoFolds(difficultPosIDs, kFolds)
@@ -103,7 +96,6 @@ stratifySmallSample <- cmpfun(function(y, k_folds)
                "of y values: c(0, 1). "))
   }
   
-  
   # get the positive and negative
   
   pos_indices <- which(y==1)
@@ -117,49 +109,17 @@ stratifySmallSample <- cmpfun(function(y, k_folds)
   
   # 
   
-  av_n_pos <- length(pos_indices) / k_folds
-  av_n_neg <- length(neg_indices) / k_folds
-  
-  pos_pointer <- 1
-  neg_pointer <- 1
-  pos_frac <- 0
-  neg_frac <- 0
+  pos_ids_allfolds <- DivideIntoFolds(pos_indices, k_folds)
+  neg_ids_allfolds <- DivideIntoFolds(neg_indices, k_folds)
   
   folds <- list()
   
   for (i_fold in 1:k_folds)
   {
-    if (i_fold != k_folds)
-    {
-      pos_frac <- pos_frac + av_n_pos - floor(av_n_pos)
-      neg_frac <- neg_frac + av_n_neg - floor(av_n_neg)
-      if (pos_frac >= 1)
-      {
-        pos_ids_thisfold <- pos_indices[pos_pointer:(pos_pointer+floor(av_n_pos))]
-        pos_frac <- pos_frac-1
-      } else
-        pos_ids_thisfold <- pos_indices[pos_pointer:(pos_pointer+floor(av_n_pos)-1)]
-      
-      if (neg_frac >= 1)
-      {
-        neg_ids_thisfold <- neg_indices[neg_pointer:(neg_pointer+floor(av_n_neg))]
-        neg_frac <- neg_frac-1
-      } else
-        neg_ids_thisfold <- neg_indices[neg_pointer:(neg_pointer+floor(av_n_neg)-1)]
-      
-      pos_pointer <- pos_pointer + length(pos_ids_thisfold)
-      neg_pointer <- neg_pointer + length(neg_ids_thisfold)
-      
-    } else 
-    {
-      pos_ids_thisfold <- pos_indices[pos_pointer:length(pos_indices)]
-      neg_ids_thisfold <- neg_indices[neg_pointer:length(neg_indices)]
-    }
-    
-    ids_thisfold <- c(pos_ids_thisfold, neg_ids_thisfold)
-    ids_out_thisfold <- (1:length(y))[which(!((1:length(y)) %in% ids_thisfold))]
-    
-    folds[[i_fold]] <- ids_out_thisfold
+    IDsInThisFold <- c(pos_ids_allfolds[[i_fold]], 
+                       neg_ids_allfolds[[i_fold]])
+    folds[[i_fold]] <- 
+      (1:length(y))[which(!((1:length(y)) %in% IDsInThisFold))]
   }
   
   return (folds)
