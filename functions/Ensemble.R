@@ -31,7 +31,8 @@ GenWeakLearnerPool <- function(weakLearnerSeed, posNegRatios, resultDir)
     allCombinationsThisType <- 
       expand.grid(weakLearnerSeed[[modelType]])
     writeLines(paste(modelType, ", models ", iLearner, " - ", 
-                     iLearner+nrow(allCombinationsThisType-1), ":", sep=""), 
+                     iLearner+nrow(allCombinationsThisType)*length(posNegRatios)-1, 
+                     ":", sep=""), 
                file)
     
     for (iComb in 1:nrow(allCombinationsThisType))
@@ -48,7 +49,7 @@ GenWeakLearnerPool <- function(weakLearnerSeed, posNegRatios, resultDir)
         }
         writeLines(paste("Positive-Negative Training Data Ratio:", 
                          posNegRatios[iRatio]), file)
-        writeLines("", file)
+        # writeLines("", file)
         # print(paste("iLearner:", iLearner))
         pool[[iLearner]] <- list(type=modelType)
         if (ncol(allCombinationsThisType) == 1)
@@ -371,6 +372,7 @@ SelfEvalModel <- function(y, X, posWeights,
   
   weakLearnerPool <- 
     GenWeakLearnerPool(weakLearnerSeed, posNegRatios, resultDir)
+  stop("after GenWeakLearnerPool.")
   
   #
   ## ensemble evaluation
