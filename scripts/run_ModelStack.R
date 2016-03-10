@@ -9,13 +9,13 @@ main.arglist$bSelfEval <- T
 main.arglist$selfEval.kEvalFolds <- 2
 main.arglist$kValiFolds <- 3
 
-main.arglist$posWeightMethod <- CON_POS_WEIGHT_METHOD$SIMILARITY_SCORE
+main.arglist$posWeightMethod <- CON_POS_WEIGHT_METHOD$KNN
 main.arglist$similarityScoreFile <- 
   "../../../../Results/2016-03-09/2016-03-09 12.32.26/SimilarityScoreResult.csv"
 
 # hyper-parameter grid
 
-main.arglist$bParallel <- T
+main.arglist$bParallel <- F
 
 main.arglist$bBadPosWeighting <- T
 
@@ -29,6 +29,8 @@ main.arglist$weakLearnerSeed <-
                        nodeSize=c(1,2,4,8)),
        RF_CI=list(nTrees=c(50,100,200),
                   nVarsPerSplit=c(5, 10, 20)))
-main.arglist$posNegRatios <- seq(from=0.5, to=5, by=0.5)
+main.arglist$posNegRatios <- seq(from=1, to=5, by=2)
+
+main.arglist$targetRecall <- 0.05
 
 ModelStack(main.arglist)

@@ -57,6 +57,10 @@ ModelStack <- function(arglist)
     similarityScoreFile <- NULL
   }
   
+  if (is.null(arglist$targetRecall))
+    stop("Error! The target recall (at which precision will be maximised) must be specified. ")
+  targetRecall <- arglist$targetRecall
+  
   #
   
   ptm <- proc.time()
@@ -161,6 +165,7 @@ ModelStack <- function(arglist)
                   kEvalFolds=selfEval.kEvalFolds, kValiFolds=kValiFolds, 
                   weakLearnerSeed=weakLearnerSeed,
                   posNegRatios=posNegRatios, 
+                  targetRecall=targetRecall, 
                   obsIDs=patientIDs,
                   bParallel=bParallel, 
                   resultDir)

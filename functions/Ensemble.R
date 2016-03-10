@@ -76,6 +76,7 @@ CV_AllWeakLeaners <- function(y, X,
                               kValiFolds, 
                               posWeightsTrainVali, 
                               weakLearnerPool,
+                              targetRecall,
                               bParallel)
 {
   valiFolds <- StratifyEasyDifficultPositives(y, posWeightsTrainVali, kValiFolds)
@@ -186,8 +187,8 @@ CV_AllWeakLeaners <- function(y, X,
   
   winnerPortion <- 0.05
   threshold <- 0.6
-  winnerIndices <- SelectWinners(predsAllLearners, y, winnerPortion,
-                                 threshold)
+  winnerIndices <- SelectWinners(predsAllLearners, y, targetRecall, 
+                                 winnerPortion, threshold)
   
   return (winnerIndices)
 }
@@ -365,6 +366,7 @@ SelfEvalModel <- function(y, X, posWeights,
                           kEvalFolds, kValiFolds, 
                           weakLearnerSeed,
                           posNegRatios,
+                          targetRecall,
                           obsIDs=NULL,
                           bParallel, 
                           resultDir)
@@ -428,6 +430,7 @@ SelfEvalModel <- function(y, X, posWeights,
                         kValiFolds=kValiFolds, 
                         posWeightsTrainVali=posWeightsTrainVali, 
                         weakLearnerPool=weakLearnerPool,
+                        targetRecall=targetRecall,
                         bParallel=bParallel)
     
     # train the selected using all the trainVali data

@@ -16,7 +16,8 @@ CalPrecisionAtRecall <- function(preds, labels, recall)
   return (CalPrecisionAtRecall)
 }
 
-SelectWinners <- function(predsAllLearners, y, winnerPortion, threshold)
+SelectWinners <- function(predsAllLearners, y, targetRecall,
+                          winnerPortion, threshold)
 {
   #
   ##
@@ -33,7 +34,7 @@ SelectWinners <- function(predsAllLearners, y, winnerPortion, threshold)
   colnames(predsAllLearners) <- 1:ncol(predsAllLearners)
   
   accuraciesAllLearners <- 
-    apply(predsAllLearners, 2, CalPrecisionAtRecall, labels=y, recall=0.05)
+    apply(predsAllLearners, 2, CalPrecisionAtRecall, labels=y, recall=targetRecall)
   accuraciesRemaining <- accuraciesAllLearners
   
   predsWinLearners <- NULL
