@@ -52,10 +52,10 @@ StratifyEasyDifficultPositives <- function(y, posWeightsAllData, kFolds)
     stop("Error! Too few easy positives. StratifyEasyDifficultPositives cannot be used.")
   difficultPosIDs <- which((posWeightsAllData < 0.5) &
                              (posWeightsAllData > 0))
-  if (length(easyPosIDs) < kFolds)
+  if (length(difficultPosIDs) < kFolds)
   {
-    print(paste("Warning! Too few difficult positives. Automatically calling", 
-                " stratifySmallSample instead. "))
+    warning(paste("Warning! Too few difficult positives. Automatically calling", 
+                " stratifySmallSample instead. ", sep=""))
     return (stratifySmallSample(y, kFolds))
   }
   negIDs <- which(y==0)
