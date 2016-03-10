@@ -13,25 +13,10 @@ source("functions/Aggregate.R")
 
 MinMaxStandardise <- function(vec, minVal=NULL, maxVal=NULL)
 {
-  if (((is.null(minVal)) & (!is.null(maxVal))) | 
-      ((!is.null(minVal)) & (is.null(maxVal))))
-  {
-    stop("Error! If the minVal and maxVal are to be specified, they need to be both specified.")
-  }
+  if (sd(vec) == 0)
+    return (vec)
   
-  if (minVal == maxVal)
-    stop("Error! The specified minVal and maxVal cannot have the same value.")
-  
-  if ((is.null(minVal)) & (is.null(maxVal))) # calculate min / max using the data
-  {
-    if (sd(vec) == 0)
-      return (vec)
-    
-    vec <- (vec - min(vec)) / (max(vec) - min(vec))
-  } else # use the specified min / max
-  {
-    vec <- (vec - minVal) / (maxVal - minVal)
-  }
+  vec <- (vec - min(vec)) / (max(vec) - min(vec))
   
   return (vec)
 }
