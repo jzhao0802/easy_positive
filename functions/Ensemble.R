@@ -85,91 +85,95 @@ CV_AllWeakLeaners <- function(y, X,
   if (bParallel)
   {
     predsAllLearners <- 
-      foreach(iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
-              .maxcombine=1e5,
-              .packages=c("glmnet", "e1071", "randomForest", "party", 
-                          "pROC", "pROC")) %dopar%
-              {
-                learnerSignature <- weakLearnerPool[[iLearner]]
-                
-                predsAllData <- rep(1e5, nrow(X))
-                
-                for (iFold in 1:kValiFolds)
-                {
-                  trainIDs <- valiFolds[[iFold]]
-                  yTrain <- y[trainIDs]
-                  XTrain <- X[trainIDs,]
-                  # validation data extracted before subsampling training
-                  XVali <- X[-trainIDs,]
-                  yVali <- y[-trainIDs]
-                  
-                  # sub-sample a fraction of the negatives
-                  
-                  trainIDsPos <- trainIDs[yTrain == 1]
-                  trainIDsNeg <- trainIDs[yTrain == 0]
-                  nNegs2Sample <- 
-                    ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
-                  if (nNegs2Sample < length(trainIDsNeg))
-                  {
-                    trainIDsNegSubSampled <- 
-                      sample(trainIDsNeg)[1:nNegs2Sample]
-                    trainIDs <- c(trainIDsPos, trainIDsNeg)
-                  }
-                  
-                  posWeightsTrain <- posWeightsTrainVali[trainIDs]
-                  
-                  # 
-                  model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
-                                             learnerSignature)
-                  
-                  predsAllData[-trainIDs] <- 
-                    PredictWithAWeakLearner(model, XVali, learnerSignature)
-                }
-              }
+      foreach(
+        iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
+        .maxcombine=1e5,
+        .packages=c("glmnet", "e1071", "randomForest", "party", 
+                    "pROC", "pROC")
+        ) %dopar%
+        {
+          learnerSignature <- weakLearnerPool[[iLearner]]
+          
+          predsAllData <- rep(1e5, nrow(X))
+          
+          for (iFold in 1:kValiFolds)
+          {
+            trainIDs <- valiFolds[[iFold]]
+            yTrain <- y[trainIDs]
+            XTrain <- X[trainIDs,]
+            # validation data extracted before subsampling training
+            XVali <- X[-trainIDs,]
+            yVali <- y[-trainIDs]
+            
+            # sub-sample a fraction of the negatives
+            
+            trainIDsPos <- trainIDs[yTrain == 1]
+            trainIDsNeg <- trainIDs[yTrain == 0]
+            nNegs2Sample <- 
+              ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
+            if (nNegs2Sample < length(trainIDsNeg))
+            {
+              trainIDsNegSubSampled <- 
+                sample(trainIDsNeg)[1:nNegs2Sample]
+              trainIDs <- c(trainIDsPos, trainIDsNeg)
+            }
+            
+            posWeightsTrain <- posWeightsTrainVali[trainIDs]
+            
+            # 
+            model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
+                                       learnerSignature)
+            
+            predsAllData[-trainIDs] <- 
+              PredictWithAWeakLearner(model, XVali, learnerSignature)
+          }
+        }
   } else 
   {
     predsAllLearners <- 
-      foreach(iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
-              .maxcombine=1e5,
-              .packages=c("glmnet", "e1071", "randomForest", "party", 
-                          "pROC", "pROC")) %do%
-              {
-                learnerSignature <- weakLearnerPool[[iLearner]]
-                
-                predsAllData <- rep(1e5, nrow(X))
-                
-                for (iFold in 1:kValiFolds)
-                {
-                  trainIDs <- valiFolds[[iFold]]
-                  yTrain <- y[trainIDs]
-                  XTrain <- X[trainIDs,]
-                  # validation data extracted before subsampling training
-                  XVali <- X[-trainIDs,]
-                  yVali <- y[-trainIDs]
-                  
-                  # sub-sample a fraction of the negatives
-                  
-                  trainIDsPos <- trainIDs[yTrain == 1]
-                  trainIDsNeg <- trainIDs[yTrain == 0]
-                  nNegs2Sample <- 
-                    ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
-                  if (nNegs2Sample < length(trainIDsNeg))
-                  {
-                    trainIDsNegSubSampled <- 
-                      sample(trainIDsNeg)[1:nNegs2Sample]
-                    trainIDs <- c(trainIDsPos, trainIDsNeg)
-                  }
-                  
-                  posWeightsTrain <- posWeightsTrainVali[trainIDs]
-                  
-                  # 
-                  model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
-                                             learnerSignature)
-                  
-                  predsAllData[-trainIDs] <- 
-                    PredictWithAWeakLearner(model, XVali, learnerSignature)
-                }
-              }
+      foreach(
+        iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
+        .maxcombine=1e5,
+        .packages=c("glmnet", "e1071", "randomForest", "party", 
+                    "pROC", "pROC")
+      ) %do%
+      {
+        learnerSignature <- weakLearnerPool[[iLearner]]
+        
+        predsAllData <- rep(1e5, nrow(X))
+        
+        for (iFold in 1:kValiFolds)
+        {
+          trainIDs <- valiFolds[[iFold]]
+          yTrain <- y[trainIDs]
+          XTrain <- X[trainIDs,]
+          # validation data extracted before subsampling training
+          XVali <- X[-trainIDs,]
+          yVali <- y[-trainIDs]
+          
+          # sub-sample a fraction of the negatives
+          
+          trainIDsPos <- trainIDs[yTrain == 1]
+          trainIDsNeg <- trainIDs[yTrain == 0]
+          nNegs2Sample <- 
+            ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
+          if (nNegs2Sample < length(trainIDsNeg))
+          {
+            trainIDsNegSubSampled <- 
+              sample(trainIDsNeg)[1:nNegs2Sample]
+            trainIDs <- c(trainIDsPos, trainIDsNeg)
+          }
+          
+          posWeightsTrain <- posWeightsTrainVali[trainIDs]
+          
+          # 
+          model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
+                                     learnerSignature)
+          
+          predsAllData[-trainIDs] <- 
+            PredictWithAWeakLearner(model, XVali, learnerSignature)
+        }
+      }
   }
   
   # before returning, select the top 5% using accuracy + independence
@@ -193,7 +197,8 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
         iLearner=(1:length(winnerIndices)), 
         .maxcombine=1e5,
         .packages=c("glmnet", "e1071", "randomForest", "party", 
-                    "pROC", "pROC")) %dopar%
+                    "pROC", "pROC")
+        ) %dopar%
         {
           learnerSignature <- weakLearnerPool[[winnerIndices[iLearner]]]
           
@@ -226,7 +231,8 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
         iLearner=(1:length(winnerIndices)), 
         .maxcombine=1e5,
         .packages=c("glmnet", "e1071", "randomForest", "party", 
-                    "pROC", "pROC")) %dopar%
+                    "pROC", "pROC")
+        ) %do%
         {
           learnerSignature <- weakLearnerPool[[winnerIndices[iLearner]]]
           
