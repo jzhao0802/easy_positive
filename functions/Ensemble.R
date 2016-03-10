@@ -11,7 +11,7 @@ source("functions/manualStratify.R")
 source("functions/WeakLearners.R")
 source("functions/Aggregate.R")
 
-MinMaxStandardise <- function(vec, minVal=NULL, maxVal=NULL)
+MinMaxStandardise <- function(vec)
 {
   if (sd(vec) == 0)
     return (vec)
