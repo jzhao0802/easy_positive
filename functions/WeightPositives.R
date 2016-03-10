@@ -27,15 +27,15 @@ WeightPositives <- function(y, X, posPatientIDsInData,
     for (iPos in 1:length(weights))
     {
       neighbours <- y[kNNIDs[iPos, ]]
-      weights[iPos] <- sum(neighbours) / k
+      weights[iPos] <- sum(neighbours==1) / k
     }
     # normalise the weights so that max(weights) = 1
     if (max(weights) == 0)
       stop(paste("Error! Weights for positive data cannot be computed from KNN ", 
                  "because none of the positive patients has any positive neighbours."))
     weights <- weights / max(weights)
-    
-    return (weights)
+    weightDF <- as.data.frame(cbind(posPatientIDsInData, weights))
+    colnames(weightDF) <- c("PATIENT_ID", "weight")
     
   } else if (posWeightMethod == CON_POS_WEIGHT_METHOD$SIMILARITY_SCORE)
   {
@@ -55,18 +55,17 @@ WeightPositives <- function(y, X, posPatientIDsInData,
     colnames(weights) <- c("PATIENT_ID", "weight")
     weights <- as.data.frame(weights)
     weightDF <- left_join(posPatientIDsInData, weights)
-    
-    # save for investigation
-    
-    # make sure there's no 0 weights, for the ease of identifying weights for
-    # positive patients among all patients
-    weightDF$weight[weightDF$weight==0] <- 1e-6
-    
-    write.table(weightDF, sep=",", row.names=F,
-                file=paste(resultDir, "posWeights.csv", sep=""))
-    
-    return (weightDF$weight)
-    
   } else
     stop("Error! Invalid posWeightMethod value!")
+  
+  # save for investigation
+  
+  # make sure there's no 0 weights, for the ease of identifying weights for
+  # positive patients among all patients
+  weightDF$weight[weightDF$weight==0] <- 1e-6
+  
+  write.table(weightDF, sep=",", row.names=F,
+              file=paste(resultDir, "posWeights.csv", sep=""))
+  
+  return (weightDF$weight)
 }
