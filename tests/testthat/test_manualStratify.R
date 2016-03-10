@@ -263,6 +263,8 @@ Call_StratifyEasyDifficultPositives_FewerDifficult <- function(kFolds)
   
   folds <- 
     StratifyEasyDifficultPositives(y, weights, kFolds)
+  
+  return (T)
 }
 
 test_that("Error when the number of easy or negative < kFolds", {
@@ -271,4 +273,8 @@ test_that("Error when the number of easy or negative < kFolds", {
     paste("Warning! Too few difficult positives. Automatically calling", 
           " stratifySmallSample instead. ", sep="")
     )
+  
+  expect_true(
+    Call_StratifyEasyDifficultPositives_FewerDifficult(kFolds=5)
+  )
 })
