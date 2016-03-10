@@ -99,6 +99,7 @@ CV_AllWeakLeaners <- function(y, X,
           for (iFold in 1:kValiFolds)
           {
             trainIDs <- valiFolds[[iFold]]
+            valiIDs <- which(!((1:length(y)) %in% trainIDs))
             yTrain <- y[trainIDs]
             XTrain <- X[trainIDs,]
             # validation data extracted before subsampling training
@@ -115,16 +116,18 @@ CV_AllWeakLeaners <- function(y, X,
             {
               trainIDsNegSubSampled <- 
                 sample(trainIDsNeg)[1:nNegs2Sample]
-              trainIDs <- c(trainIDsPos, trainIDsNeg)
+              trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
             }
             
+            yTrain <- y[trainIDs]
+            XTrain <- X[trainIDs, ]
             posWeightsTrain <- posWeightsTrainVali[trainIDs]
             
             # 
             model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
                                        learnerSignature)
             
-            predsAllData[-trainIDs] <- 
+            predsAllData[valiIDs] <- 
               PredictWithAWeakLearner(model, XVali, learnerSignature)
           }
         }
@@ -145,6 +148,7 @@ CV_AllWeakLeaners <- function(y, X,
         for (iFold in 1:kValiFolds)
         {
           trainIDs <- valiFolds[[iFold]]
+          valiIDs <- which(!((1:length(y)) %in% trainIDs))
           yTrain <- y[trainIDs]
           XTrain <- X[trainIDs,]
           # validation data extracted before subsampling training
@@ -161,16 +165,18 @@ CV_AllWeakLeaners <- function(y, X,
           {
             trainIDsNegSubSampled <- 
               sample(trainIDsNeg)[1:nNegs2Sample]
-            trainIDs <- c(trainIDsPos, trainIDsNeg)
+            trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
           }
           
+          yTrain <- y[trainIDs]
+          XTrain <- X[trainIDs, ]
           posWeightsTrain <- posWeightsTrainVali[trainIDs]
           
           # 
           model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
                                      learnerSignature)
           
-          predsAllData[-trainIDs] <- 
+          predsAllData[valiIDs] <- 
             PredictWithAWeakLearner(model, XVali, learnerSignature)
         }
       }
