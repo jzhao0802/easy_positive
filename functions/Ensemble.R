@@ -372,7 +372,6 @@ SelfEvalModel <- function(y, X, posWeights,
   
   weakLearnerPool <- 
     GenWeakLearnerPool(weakLearnerSeed, posNegRatios, resultDir)
-  stop("after GenWeakLearnerPool.")
   
   #
   ## ensemble evaluation
