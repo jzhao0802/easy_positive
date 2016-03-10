@@ -57,6 +57,8 @@ ModelStack <- function(arglist)
     similarityScoreFile <- NULL
   }
   
+  #
+  
   ptm <- proc.time()
   if (is.null(arglist$resultDir))
   {
@@ -66,6 +68,51 @@ ModelStack <- function(arglist)
     dir.create(resultDir, showWarnings = TRUE, recursive = TRUE, mode = "0777")
   } else
     resultDir <- arglist$resultDir
+  
+  
+  #
+  ## save all the input arguments
+  
+  fileArgList <- file(paste(resultDir, "arglist.txt", sep=""), "w")
+  for (argName in names(arglist))
+  {
+    if (argName == "posNegRatios")
+    {
+      n_candidates <- length(arglist[[argName]])
+      start <- arglist[[argName]][1]
+      end <- arglist[[argName]][n_candidates]
+      writeLines(paste(argName, ": bounds [", start, ", ", end, "], nCandidates: ", 
+                       n_candidates, "\n", sep=""), fileArgList)
+    } else if (argName == "posWeightMethod")
+    {
+      value <- 
+        names(CON_POS_WEIGHT_METHOD)[
+          as.vector(CON_POS_WEIGHT_METHOD) == arglist[[argName]]
+          ]
+      writeLines(paste(argName,": ", value, "\n", sep=""), fileArgList)
+    } else if (argName == "weakLearnerSeed")
+    {
+      writeLines(paste(argName,": ", sep=""), fileArgList)
+      for (modelType in names(arglist[[argName]]))
+      {
+        writeLines(paste(modelType,"; ", sep=""), sep="", fileArgList)
+        for (param in names(arglist[[argName]][[modelType]]))
+        {
+          n_candidates <- length(arglist[[argName]][[modelType]][[param]])
+          start <- arglist[[argName]][[modelType]][[param]][1]
+          end <- arglist[[argName]][[modelType]][[param]][n_candidates]
+          writeLines(paste(param,": bounds [", start, ", ", end, "], nCandidates: ", 
+                           n_candidates, "; ", sep=""), sep="", fileArgList)
+        }
+        writeLines("", fileArgList)
+      }
+      writeLines("", fileArgList)
+    } else
+    {
+      writeLines(paste(argName,": ", arglist[[argName]], "\n", sep=""), fileArgList)
+    }
+  }
+  close(fileArgList)
   
   
   #
