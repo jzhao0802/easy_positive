@@ -77,9 +77,7 @@ CV_AllWeakLeaners <- function(y, X,
                               weakLearnerPool,
                               bParallel)
 {
-  y4Stratification <- rep(0, length(y))
-  y4Stratification[posWeightsTrainVali>0.5] <- 1
-  valiFolds <- stratifySmallSample(y4Stratification, kValiFolds)
+  valiFolds <- StratifyEasyDifficultPositives(y, posWeightsTrainVali, kValiFolds)
   
   # 
   
@@ -367,11 +365,9 @@ SelfEvalModel <- function(y, X, posWeights,
   #
   ## stratify for ensemble evaluation 
   
-  # a more sophisticated stratification: every fold have similar-sized
+  # a more sophisticated stratification: every fold has similar-sized
   # 'purer / easier' positive patients;
-  y4Stratification <- rep(0, length(y))
-  y4Stratification[posWeightsAllData>0.5] <- 1
-  evalFolds <- stratifySmallSample(y4Stratification, kEvalFolds)
+  evalFolds <- StratifyEasyDifficultPositives(y, posWeightsAllData, kEvalFolds)
   
   weakLearnerPool <- 
     GenWeakLearnerPool(weakLearnerSeed, posNegRatios, resultDir)
@@ -444,7 +440,10 @@ SelfEvalModel <- function(y, X, posWeights,
   # save the evaluation result
   
   if (!is.null(obsIDs))
+  {
     predsAllData <- cbind(obsIDs, predsAllData)
-  colnames(predsAllData) <- c("ObservationID", "Prediction")
+    colnames(predsAllData) <- c("ObservationID", "Prediction")
+  }
+    
   SaveEvalResult(resultDir, preds=predsAllData, labels=y)
 }

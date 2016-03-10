@@ -1,6 +1,99 @@
 library(caret)
 library(compiler)
 
+DivideIntoFolds <- function(IDs, kFolds)
+{
+  avNDataPerFold <- length(IDs) / kFolds
+  pointer <- 1
+  frac <- 0
+  
+  IDsAllFolds <- list()
+  
+  for (iFold in 1:kFolds)
+  {
+    if (iFold != kFolds)
+    {
+      frac <- frac + avNDataPerFold - floor(avNDataPerFold)
+      if (frac >= 1)
+      {
+        IDsThisFold <- IDs[pointer:(pointer+floor(avNDataPerFold))]
+        frac <- frac-1
+      } else
+        IDsThisFold <- IDs[pointer:(pointer+floor(avNDataPerFold)-1)]
+      
+      pointer <- pointer + length(IDsThisFold)
+      
+    } else 
+    {
+      IDsThisFold <- IDs[pointer:length(IDs)]
+    }
+    
+    IDsAllFolds[[iFold]] <- IDsThisFold
+  }
+  
+  return (IDsAllFolds)
+}
+
+StratifyEasyDifficultPositives <- function(y, posWeightsAllData, kFolds)
+{
+  if (!(all(levels(y) %in% c(0,1))))
+  {
+    stop(paste("Error! Invalid y-values for stratification. ", 
+               "stratifySmallSample currently only supports one type ",
+               "of y values: c(0, 1). "))
+  }
+  
+  # the original IDs
+  easyPosIDs <- which(posWeightsAllData > 0.5)
+  if (length(easyPosIDs) < kFolds)
+    stop("Error! Too few easy positives. StratifyEasyDifficultPositives cannot be used.")
+  difficultPosIDs <- which((posWeightsAllData < 0.5) &
+                             (posWeightsAllData > 0))
+  if (length(easyPosIDs) < kFolds)
+  {
+    print(paste("Warning! Too few difficult positives. Automatically calling", 
+                " stratifySmallSample instead. "))
+    return (stratifySmallSample(y, kFolds))
+  }
+  negIDs <- which(y==0)
+  if (length(negIDs) < kFolds)
+    stop("Error! Too few negatives. StratifyEasyDifficultPositives failed.")
+  
+  # shuffle
+  easyPosIDs <- sample(easyPosIDs, kFolds)
+  difficultPosIDs <- sample(difficultPosIDs, kFolds)
+  negIDs <- sample(negIDs, kFolds)
+  
+  # assign to folds
+#   avNEasyPoses <- length(easyPosIDs) / kFolds
+#   avNDifficultPoses <- length(difficultPosIDs) / kFolds
+#   avNNegs <- length(negIDs) / kFolds
+  
+#   easyPosPointer <- 1
+#   diffPosPointer <- 1
+#   negPointer <- 1
+#   easyPosFrac <- 0
+#   diffPosFrac <- 0
+#   negFrac <- 0
+  
+  easyPos_IDsAllFolds <- DivideIntoFolds(easyPosIDs, kFolds)
+  difficultPos_IDsAllFolds <- DivideIntoFolds(difficultPosIDs, kFolds)
+  neg_IDsAllFolds <- DivideIntoFolds(negIDs, kFolds)
+  
+  folds <- list()
+  
+  for (iFold in 1:kFolds)
+  {
+    IDsInThisFold <- c(easyPos_IDsAllFolds[[iFold]], 
+                       difficultPos_IDsAllFolds[[iFold]], 
+                       neg_IDsAllFolds[[iFold]])
+    folds[[iFold]] <- 
+      (1:length(y))[which(!((1:length(y)) %in% IDsInThisFold))]
+  }
+  
+  return (folds)
+}
+
 stratifySmallSample <- cmpfun(function(y, k_folds)
 {
   if (!(all(levels(y) %in% c(0,1))))
@@ -14,7 +107,11 @@ stratifySmallSample <- cmpfun(function(y, k_folds)
   # get the positive and negative
   
   pos_indices <- which(y==1)
+  if (length(pos_indices) < k_folds)
+    stop("Error! Too few positives. StratifyEasyDifficultPositives failed.")
   neg_indices <- which(y==0)
+  if (length(neg_indices) < k_folds)
+    stop("Error! Too few negatives. StratifyEasyDifficultPositives failed.")
   pos_indices <- sample(pos_indices)
   neg_indices <- sample(neg_indices)
   
