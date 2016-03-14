@@ -9,11 +9,18 @@ CalIndependence <- function(corrCoefs, threshold)
 
 CalPrecisionAtRecall <- function(preds, labels, recall)
 {
+  if (!any(labels > 0))
+    stop("Error! There's no positive label. Precision calculation failed.")
+  if ((recall > 1) & (recall < 0))
+    stop("Error1 Target recall should be within the range of 0 and 1. ")
   predsObj <- prediction(predictions=preds, labels=labels)
   perf <- performance(predsObj, measure="prec", x.measure="rec")
   
-  precision <- approx(perf@x.values[[1]], perf@y.values[[1]], xout=0.05)
-  return (CalPrecisionAtRecall)
+  nanRemovedPrecisions <- perf@y.values[[1]]
+  nanRemovedPrecisions[is.na(nanRemovedPrecisions)] <- 0
+  precision <- 
+    (approx(perf@x.values[[1]], nanRemovedPrecisions, xout=recall))$y[1]
+  return (precision)
 }
 
 SelectWinners <- function(predsAllLearners, y, targetRecall,
