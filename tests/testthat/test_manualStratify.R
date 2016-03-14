@@ -202,7 +202,7 @@ Call_StratifyEasyDifficultPositives_FewerNeg <- function(kFolds)
   # 2. has fewer negative elements than kFolds
   
   nPositives <- round(runif(n=1, min=minNTimes, max=maxNTimes)) * 2 * kFolds
-  nNegatives <- round(runif(n=1, min=0, max=kFolds))
+  nNegatives <- round(runif(n=1, min=0, max=kFolds-0.51))
   y <- sample(c(rep(1, nPositives), rep(0, nNegatives)))
   
   # randomly generate a weight vec with the same length of y, which

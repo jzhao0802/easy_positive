@@ -37,7 +37,6 @@ SelectWinners <- function(predsAllLearners, y, targetRecall,
   
   #
   ## accuracies
-  
   colnames(predsAllLearners) <- 1:ncol(predsAllLearners)
   
   accuraciesAllLearners <- 
@@ -47,29 +46,45 @@ SelectWinners <- function(predsAllLearners, y, targetRecall,
   predsWinLearners <- NULL
   remaining <- predsAllLearners
   
-  while (length(predsWinLearners) < nWinners2Select)
+  iRound <- 1
+  nWinnersSelected <- 0
+  while (nWinnersSelected < nWinners2Select)
   {
-    if (length(predsWinLearners) == 0)
+    print(paste("Round", iRound))
+    if (nWinnersSelected == 0)
     {
       bestLearnID <- which.max(accuraciesAllLearners)
       predsWinLearners <- 
         predsAllLearners[, bestLearnID]
+      predsWinLearners <- matrix(predsWinLearners, ncol=1)
+      colnames(predsWinLearners) <- bestLearnID
       remaining <- 
         remaining[, !(colnames(remaining) %in% colnames(predsWinLearners))]
       accuraciesRemaining <- 
         accuraciesRemaining[!(names(accuraciesRemaining) %in% colnames(predsWinLearners))]
+      
+      nWinnersSelected <- nWinnersSelected+1
     } else
     {
       corrs <- cor(predsWinLearners, remaining)
       independences <- apply(corrs, 2, CalIndependence, threshold=threshold)
-      scores <- accuraciesRemaining / accuraciesAllLearners[bestLearnID] + independences
-      winnerIDThisRound <- colnames(sort(scores))[1]
+      scores <- 
+        accuraciesRemaining / accuraciesAllLearners[names(accuraciesAllLearners) == bestLearnID] + 
+        independences
+      winnerIDThisRound <- names(sort(scores, decreasing=T))[1]
       
-      predsWinLearners <- cbind(predsWinLearners, predsAllLearners[winnerIDThisRound])
+      predsWinLearners <- 
+        cbind(predsWinLearners, predsAllLearners[colnames(predsAllLearners) == winnerIDThisRound])
+      colnames(predsWinLearners)[ncol(predsWinLearners)] <- winnerIDThisRound
       remaining <- remaining[, (colnames(remaining) != winnerIDThisRound)]
       accuraciesRemaining <- 
         accuraciesRemaining[names(accuraciesRemaining) != winnerIDThisRound]
+      
+      nWinnersSelected <- nWinnersSelected+1
     }
+    print("winners selected")
+    print(colnames(predsWinLearners))
+    iRound <- iRound + 1
   }
   
   return (as.numeric(colnames(predsWinLearners)))
