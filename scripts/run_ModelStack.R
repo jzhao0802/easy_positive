@@ -29,7 +29,7 @@ main.arglist$weakLearnerSeed <-
                        nodeSize=c(1,2,4,8)),
        RF_CI=list(nTrees=c(50,100,200),
                   nVarsPerSplit=c(5, 10, 20)))
-main.arglist$posNegRatios <- seq(from=1, to=5, by=2)
+main.arglist$posNegRatios <- seq(from=0.2, to=1, by=0.2)
 
 main.arglist$targetRecall <- 0.05
 
