@@ -201,13 +201,13 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
   {
     learners <- 
       foreach(
-        iLearner=(1:length(winnerIndices)), 
+        iWinner=(1:length(winnerIndices)), 
         .maxcombine=1e5,
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
         ) %dopar%
         {
-          learnerSignature <- weakLearnerPool[[winnerIndices[iLearner]]]
+          learnerSignature <- weakLearnerPool[[winnerIndices[iWinner]]]
           
           # sub-sample a fraction of the negatives
           
@@ -220,7 +220,7 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           {
             trainIDsNegSubSampled <- 
               sample(trainIDsNeg)[1:nNegs2Sample]
-            trainIDs <- c(trainIDsPos, trainIDsNeg)
+            trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
           }
             
           posWeightsTrain <- posWeightsTrainVali[trainIDs]
@@ -235,13 +235,13 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
   {
     learners <- 
       foreach(
-        iLearner=(1:length(winnerIndices)), 
+        iWinner=(1:length(winnerIndices)), 
         .maxcombine=1e5,
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
         ) %do%
         {
-          learnerSignature <- weakLearnerPool[[winnerIndices[iLearner]]]
+          learnerSignature <- weakLearnerPool[[winnerIndices[iWinner]]]
           
           # sub-sample a fraction of the negatives
           
@@ -254,7 +254,7 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           {
             trainIDsNegSubSampled <- 
               sample(trainIDsNeg)[1:nNegs2Sample]
-            trainIDs <- c(trainIDsPos, trainIDsNeg)
+            trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
           }
           
           posWeightsTrain <- posWeightsTrainVali[trainIDs]
