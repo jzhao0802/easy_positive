@@ -111,7 +111,7 @@ TrainAWeakLearner <- function(y, X,
     # supports only class weights
   {
     posIDs2Remove <- (y==1) & (posWeights <= 0.5)
-    trainIDs <- (1:length(y))[!(1:length(y)) %in% posIDs2Remove]
+    trainIDs <- (1:length(y))[!((1:length(y)) %in% posIDs2Remove)]
     y <- y[trainIDs]
     X <- X[trainIDs,]
     weights <- 1/table(y)
