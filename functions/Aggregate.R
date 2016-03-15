@@ -9,7 +9,7 @@ CalIndependence <- function(corrCoefs, threshold)
 
 CalPrecisionAtRecall <- function(preds, labels, recall)
 {
-  if (!any(labels > 0))
+  if (!any(labels == 1))
     stop("Error! There's no positive label. Precision calculation failed.")
   if ((recall > 1) & (recall < 0))
     stop("Error1 Target recall should be within the range of 0 and 1. ")

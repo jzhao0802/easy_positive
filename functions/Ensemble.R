@@ -189,8 +189,6 @@ CV_AllWeakLeaners <- function(y, X,
   
   
   # before returning, select the top 5% using accuracy + independence
-  print("dim(predsAllLearners):")
-  print(dim(predsAllLearners))
   winnerPortion <- 0.05
   threshold <- 0.6
   winnerIndices <- SelectWinners(predsAllLearners, y, targetRecall, 
@@ -283,7 +281,7 @@ PredictWithAnEnsemble <- function(weakLearners, XEval,
   {
     predsAllWeakLearners <- 
       foreach(
-        iLearner=(1:length(weakLearners)), 
+        iLearner=(1:length(weakLearners)), .combine="cbind", 
         .maxcombine=1e5,
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
@@ -297,7 +295,7 @@ PredictWithAnEnsemble <- function(weakLearners, XEval,
   {
     predsAllWeakLearners <- 
       foreach(
-        iLearner=(1:length(weakLearners)), 
+        iLearner=(1:length(weakLearners)), .combine="cbind", 
         .maxcombine=1e5,
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
@@ -309,7 +307,9 @@ PredictWithAnEnsemble <- function(weakLearners, XEval,
       }
   }
   
-  return (predsAllWeakLearners)
+  preds <- apply(predsAllWeakLearners, 1, mean)
+  
+  return (preds)
 }
 
 SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
@@ -349,9 +349,9 @@ SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
 
 SaveEvalResult <- function(resultDir, preds, labels, targetRecall)
 {
-  write.table(preds, sep=",", 
-              file=paste(resultDir, "preds.csv", sep=""), 
-              col.names=T, row.names=F)
+#   write.table(preds, sep=",", 
+#               file=paste(resultDir, "preds.csv", sep=""), 
+#               col.names=T, row.names=F)
   
   predsObj <- prediction(predictions=preds[,2], labels=labels)
   perf <- performance(predsObj, measure="prec", x.measure="rec")
@@ -466,7 +466,7 @@ SelfEvalModel <- function(y, X, posWeights,
     predsAllData <- cbind(obsIDs, predsAllData)
     colnames(predsAllData) <- c("ObservationID", "Prediction")
   }
-    
+  
   SaveEvalResult(resultDir, preds=predsAllData, labels=y, 
                  targetRecall=targetRecall)
 }

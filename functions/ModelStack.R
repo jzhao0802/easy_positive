@@ -131,7 +131,8 @@ ModelStack <- function(arglist)
 #       stop(paste("Error! To use the similarity score to weight positives, the ", 
 #            "input positive patients must have IDs.", sep=""))
 #   }
-  y <- as.factor(dataset$HAE)
+  # y <- as.factor(dataset$HAE)
+  y <- dataset$HAE
   X <- data.matrix(dataset[, (colnames(dataset) != "HAE")])
   
   # a little cleaning
