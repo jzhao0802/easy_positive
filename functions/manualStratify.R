@@ -63,12 +63,11 @@ StratifyEasyDifficultPositives <- function(y, posWeightsAllData, kFolds)
     stop("Error! Too few negatives. StratifyEasyDifficultPositives failed.")
   
   # shuffle
-  easyPosIDs <- sample(easyPosIDs, kFolds)
-  difficultPosIDs <- sample(difficultPosIDs, kFolds)
-  negIDs <- sample(negIDs, kFolds)
+  easyPosIDs <- sample(easyPosIDs)
+  difficultPosIDs <- sample(difficultPosIDs)
+  negIDs <- sample(negIDs)
   
   # assign to folds
-  
   easyPos_IDsAllFolds <- DivideIntoFolds(easyPosIDs, kFolds)
   difficultPos_IDsAllFolds <- DivideIntoFolds(difficultPosIDs, kFolds)
   neg_IDsAllFolds <- DivideIntoFolds(negIDs, kFolds)

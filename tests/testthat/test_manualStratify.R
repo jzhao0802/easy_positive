@@ -278,3 +278,57 @@ test_that("Error when the number of easy or negative < kFolds", {
     Call_StratifyEasyDifficultPositives_FewerDifficult(kFolds=5)
   )
 })
+
+IS_COMBINED_STRATIFY_ORIGINAL <- function(kFolds)
+{
+  if (kFolds == 1)
+    return (T)
+  
+  minNTimes <- 1
+  maxNTimes <- 10
+  
+  # randomly generate a y vector that
+  # 1. has more positive elements than 2 x kFolds
+  # 2. has more negative elements than kFolds
+  
+  nPositives <- round(runif(n=1, min=minNTimes, max=maxNTimes)) * 2 * kFolds
+  nNegatives <- round(runif(n=1, min=minNTimes, max=maxNTimes)) * kFolds
+  y <- sample(c(rep(1, nPositives), rep(0, nNegatives)))
+  
+  # randomly generate a weight vec with the same length of y, which
+  # 1. has more than kFolds easy positives (weight > 0.5)
+  # 2. has more than kFolds difficult positives (0< weight <= 0.5)
+  # 3. has 0 weights for negatives
+  
+  nEasyPositives <- round(runif(n=1, min=kFolds, max=nPositives-kFolds))
+  nDifficultPositives <- nPositives - nEasyPositives
+  wEasyPositives <- runif(n=nEasyPositives, min=0.5+1e-6, max=1)
+  wDifficultPositives <- runif(n=nDifficultPositives, min=1e-6, max=0.5)
+  wPositives <- c(wEasyPositives, wDifficultPositives)
+  weights <- rep(0, nPositives+nNegatives)
+  weights[y==1] <- wPositives
+  
+  # compute the folds using StratifyEasyDifficultPositives
+  
+  folds <- 
+    StratifyEasyDifficultPositives(y, weights, kFolds)
+  
+  # check the combined left-out
+  combinedSet <- NULL
+  for (iFold in 1:length(folds))
+  {
+    IDsLeftOut <- (1:length(y))[!((1:length(y)) %in% folds[[iFold]])]
+    combinedSet <- c(combinedSet, IDsLeftOut)
+  }
+  
+  if (all(combinedSet %in% (1:length(y))) & 
+      all((1:length(y)) %in% combinedSet))
+    return (T)
+  else
+    return (F)
+}
+
+test_that("Left-out from Stratified folds combine to the original set.", {
+  expect_true(IS_COMBINED_STRATIFY_ORIGINAL(kFolds=5))
+  expect_true(IS_COMBINED_STRATIFY_ORIGINAL(kFolds=11))
+})
