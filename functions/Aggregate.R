@@ -50,7 +50,6 @@ SelectWinners <- function(predsAllLearners, y, targetRecall,
   nWinnersSelected <- 0
   while (nWinnersSelected < nWinners2Select)
   {
-    print(paste("Round", iRound))
     if (nWinnersSelected == 0)
     {
       bestLearnID <- which.max(accuraciesAllLearners)
@@ -82,8 +81,6 @@ SelectWinners <- function(predsAllLearners, y, targetRecall,
       
       nWinnersSelected <- nWinnersSelected+1
     }
-    print("winners selected")
-    print(colnames(predsWinLearners))
     iRound <- iRound + 1
   }
   
