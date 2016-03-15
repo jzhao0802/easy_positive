@@ -341,7 +341,7 @@ SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
   close(fileSummary)
 }
 
-SaveEvalResult <- function(resultDir, preds, labels)
+SaveEvalResult <- function(resultDir, preds, labels, targetRecall)
 {
   write.table(preds, sep=",", 
               file=paste(resultDir, "preds.csv", sep=""), 
@@ -354,10 +354,10 @@ SaveEvalResult <- function(resultDir, preds, labels)
               col.names=c("recall", "precision"),
               row.names=F)
   
-  precision0.05Recall <- 
-    approx(perf@x.values[[1]], perf@y.values[[1]], xout=0.05)$y[1]
-  write.table(precision0.05Recall, sep=",", 
-              file=paste(resultDir, "precision0.05Recall.csv", sep=""), 
+  precisionTargetRecall <- 
+    approx(perf@x.values[[1]], perf@y.values[[1]], xout=targetRecall)$y[1]
+  write.table(precisionTargetRecall, sep=",", 
+              file=paste(resultDir, "precisionTargetRecall.csv", sep=""), 
               col.names=F, row.names=F)
 }
 
@@ -461,5 +461,6 @@ SelfEvalModel <- function(y, X, posWeights,
     colnames(predsAllData) <- c("ObservationID", "Prediction")
   }
     
-  SaveEvalResult(resultDir, preds=predsAllData, labels=y)
+  SaveEvalResult(resultDir, preds=predsAllData, labels=y, 
+                 targetRecall=targetRecall)
 }
