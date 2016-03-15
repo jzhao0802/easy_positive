@@ -144,7 +144,7 @@ TrainAWeakLearner <- function(y, X,
                         hyperParams=learnerSignature$hyperParams)
     
   } else
-    stop(paste("Error! Weak learner type ", learnerSignature, " is not supported."))
+    stop(paste("Error! Weak learner type ", learnerSignature$type, " is not supported."))
   
   return (model)
 }
