@@ -218,8 +218,8 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           # sub-sample a fraction of the negatives
           
           trainIDs <- 1:length(y)
-          trainIDsPos <- trainIDs[yTrain == 1]
-          trainIDsNeg <- trainIDs[yTrain == 0]
+          trainIDsPos <- trainIDs[y == 1]
+          trainIDsNeg <- trainIDs[y == 0]
           nNegs2Sample <- 
             ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
           if (nNegs2Sample < length(trainIDsNeg))
@@ -231,7 +231,7 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
             
           posWeightsTrain <- posWeightsTrainVali[trainIDs]
           
-          model <- TrainAWeakLearner(y[trainIDs], XTrain[trainIDs, ], 
+          model <- TrainAWeakLearner(y[trainIDs], X[trainIDs, ], 
                                      posWeightsTrain, learnerSignature)
           
           list(model=model, 
@@ -252,8 +252,8 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           # sub-sample a fraction of the negatives
           
           trainIDs <- 1:length(y)
-          trainIDsPos <- trainIDs[yTrain == 1]
-          trainIDsNeg <- trainIDs[yTrain == 0]
+          trainIDsPos <- trainIDs[y == 1]
+          trainIDsNeg <- trainIDs[y == 0]
           nNegs2Sample <- 
             ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
           if (nNegs2Sample < length(trainIDsNeg))
@@ -265,7 +265,7 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           
           posWeightsTrain <- posWeightsTrainVali[trainIDs]
           
-          model <- TrainAWeakLearner(y[trainIDs], XTrain[trainIDs, ], 
+          model <- TrainAWeakLearner(y[trainIDs], X[trainIDs, ], 
                                      posWeightsTrain, learnerSignature)
           
           list(model=model, 
