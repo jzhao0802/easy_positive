@@ -355,7 +355,7 @@ SaveEvalResult <- function(resultDir, preds, labels)
               row.names=F)
   
   precision0.05Recall <- 
-    approx(perf@x.values[[1]], perf@y.values[[1]], xout=0.05)
+    approx(perf@x.values[[1]], perf@y.values[[1]], xout=0.05)$y[1]
   write.table(precision0.05Recall, sep=",", 
               file=paste(resultDir, "precision0.05Recall.csv", sep=""), 
               col.names=F, row.names=F)
