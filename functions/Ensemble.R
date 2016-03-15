@@ -417,7 +417,7 @@ SelfEvalModel <- function(y, X, posWeights,
       r <- max(XTrainVali[, iVar]) - min(XTrainVali[, iVar])
       if (r != 0)
       {
-        XEval[, iVar] <- (XEval - min(XTrainVali)) / r
+        XEval[, iVar] <- (XEval[, iVar] - min(XTrainVali[, iVar])) / r
       }
     }
     
