@@ -131,6 +131,8 @@ CV_AllWeakLeaners <- function(y, X,
             predsAllData[valiIDs] <- 
               PredictWithAWeakLearner(model, XVali, learnerSignature)
           }
+          
+          predsAllData
         }
   } else 
   {
@@ -180,11 +182,15 @@ CV_AllWeakLeaners <- function(y, X,
           predsAllData[valiIDs] <- 
             PredictWithAWeakLearner(model, XVali, learnerSignature)
         }
+        
+        predsAllData
       }
   }
   
-  # before returning, select the top 5% using accuracy + independence
   
+  # before returning, select the top 5% using accuracy + independence
+  print("dim(predsAllLearners):")
+  print(dim(predsAllLearners))
   winnerPortion <- 0.05
   threshold <- 0.6
   winnerIndices <- SelectWinners(predsAllLearners, y, targetRecall, 
