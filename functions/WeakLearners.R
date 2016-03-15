@@ -4,12 +4,12 @@ library(randomForest)
 library(party)
 
 
-CON_WEAK_LEARNER_TYPES <- list(LR_LASSO=1,
-                               LR_ENET=2,
-                               SVM_LIN=3,
-                               SVM_RAD=4,
-                               RF_BREIMAN=5, 
-                               RF_CI=6)
+CON_WEAK_LEARNER_TYPES <- list(LR_LASSO="LR_LASSO",
+                               LR_ENET="LR_ENET",
+                               SVM_LIN="SVM_LIN",
+                               SVM_RAD="SVM_RAD",
+                               RF_BREIMAN="RF_BREIMAN", 
+                               RF_CI="RF_CI")
 
 
 ################################################################################
