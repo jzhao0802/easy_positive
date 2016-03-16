@@ -324,11 +324,11 @@ SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
   {
     # summary
     writeLines(paste("Winner ", iLearner, ": ", sep=""), sep="", fileSummary)
-    writeLines(paste(winnerLearners$signature$type, 
+    writeLines(paste(winnerLearners[[iLearner]]$signature$type, 
                      ", ", sep=""), 
                sep="", fileSummary)
-    paramNames <- names(winnerLearners$signature$hyperParams)
-    paramVals <- winnerLearners$signature$hyperParams
+    paramNames <- names(winnerLearners[[iLearner]]$signature$hyperParams)
+    paramVals <- winnerLearners[[iLearner]]$signature$hyperParams
     for (iParam in 1:length(paramNames))
     {
       writeLines(paste(paramNames[iParam],
@@ -336,7 +336,7 @@ SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
                        ", ", sep=""), sep="", fileSummary)
     }
     writeLines(paste("Positive-Negative Training Data Ratio:", 
-                     winnerLearners$signature$posNegRatio), fileSummary)
+                     winnerLearners[[iLearner]]$signature$posNegRatio), fileSummary)
     writeLines("", fileSummary)
     
     # the models and signatures
@@ -354,18 +354,34 @@ SaveEvalResult <- function(resultDir, preds, labels, targetRecall)
 #               file=paste(resultDir, "preds.csv", sep=""), 
 #               col.names=T, row.names=F)
   
+  
   predsObj <- prediction(predictions=preds[,2], labels=labels)
-  perf <- performance(predsObj, measure="prec", x.measure="rec")
-  write.table(cbind(perf@x.values[[1]],perf@y.values[[1]]), sep=",", 
+  perfPR <- performance(predsObj, measure="prec", x.measure="rec")
+  write.table(cbind(perfPR@x.values[[1]],perfPR@y.values[[1]]), sep=",", 
               file=paste(resultDir, "PR.csv", sep=""), 
               col.names=c("recall", "precision"),
               row.names=F)
   
   precisionTargetRecall <- 
-    approx(perf@x.values[[1]], perf@y.values[[1]], xout=targetRecall)$y[1]
+    approx(perfPR@x.values[[1]], perfPR@y.values[[1]], xout=targetRecall)$y[1]
   write.table(precisionTargetRecall, sep=",", 
               file=paste(resultDir, "precisionTargetRecall.csv", sep=""), 
               col.names=F, row.names=F)
+  
+  rocObj <- 
+    roc(response=as.vector(labels), 
+        predictor=as.vector(preds[,2]),
+        direction="<")
+  auc <- rocObj$auc
+  write.table(auc, sep=",", 
+              file=paste(resultDir, "auc.csv", sep=""), 
+              col.names=F, row.names=F)
+  
+  perfROC <- performance(predsObj, measure = "tpr", x.measure = "fpr") 
+  write.table(cbind(perfROC@x.values[[1]],perfROC@y.values[[1]]), sep=",", 
+              file=paste(resultDir, "ROC.csv", sep=""), 
+              col.names=c("fpr", "tpr"),
+              row.names=F)
 }
 
 # SelfEvalModel evaluates the trained ensemble on a subset of the input data
@@ -378,6 +394,12 @@ SelfEvalModel <- function(y, X, posWeights,
                           bParallel, 
                           resultDir)
 {
+  if (is.null(colnames(X)))
+    stop("Error! X must have colnames.")
+  
+  if (length(unique(colnames(X))) != ncol(X))
+    stop("Error! X has duplicated variable names.")
+  
   #
   ## transform to a vector with the same length as y, for the ease of stratification
   
@@ -416,7 +438,11 @@ SelfEvalModel <- function(y, X, posWeights,
     # standardise the training + validation data
     
     minMaxValMat <- apply(XTrainVali, 2, FindMinMaxOneVar)
+    colnames(minMaxValMat) <- colnames(XTrainVali)
     XTrainVali <- MinMaxNormaliseAllVarsWithGivenMinMaxValues(XTrainVali, minMaxValMat)
+    # save for normalisation in future tests
+    fileMinMaxMat <- paste(resultDir, "minmax_EvalFold", iEvalFold, ".csv", sep="")
+    write.table(minMaxValMat, sep=",", file=fileMinMaxMat, row.names=F)
     # standardise the evaluation data accordingly
     XEval <- MinMaxNormaliseAllVarsWithGivenMinMaxValues(XEval, minMaxValMat)
 

@@ -11,16 +11,25 @@ MinMaxNormaliseAllVarsWithGivenMinMaxValues <- function(XMat, minMaxValMat)
 {
   if (ncol(XMat) != ncol(minMaxValMat))
     stop("Error! XMat and minMaxValMat don't have the same number of variables.")
+	
+  if (is.null(colnames(XMat)))
+    stop("Error! XMat must have col.names.")
   
-  for (iVar in 1:ncol(XMat))
+  for (name in colnames(XMat))
   {
-    if (minMaxValMat[1, iVar] > minMaxValMat[2, iVar])
-      stop(paste("Error! The min value is larger than the max value of the ", iVar, "th variable.", 
+    if (!(name %in% colnames(minMaxValMat)))
+      stop(paste("Error! Variable ", name, " doesn't exist in minMaxValMat."))
+  }
+
+  for (name in colnames(XMat))
+  {
+    if (minMaxValMat[1, name] > minMaxValMat[2, name])
+      stop(paste("Error! The min value is larger than the max value of the ", name, "th variable.", 
                  sep=""))
-    if (minMaxValMat[1, iVar] != minMaxValMat[2, iVar])
+    if (minMaxValMat[1, name] != minMaxValMat[2, name])
     {
-      XMat[, iVar] <- 
-        (XMat[, iVar] - minMaxValMat[1, iVar] ) / (minMaxValMat[2, iVar] - minMaxValMat[1, iVar])
+      XMat[, name] <- 
+        (XMat[, name] - minMaxValMat[1, name] ) / (minMaxValMat[2, name] - minMaxValMat[1, name])
     }
   }
   
