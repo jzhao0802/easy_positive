@@ -90,6 +90,10 @@ CV_AllWeakLeaners <- function(y, X,
       foreach(
         iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
         .maxcombine=1e5,
+        .export=c("TrainAWeakLearner", "CON_WEAK_LEARNER_TYPES", "Swap2MakeFirstPositive",
+                  "Train_A_LR_LASSO", "Train_A_SVM_LIN", "Train_A_SVM_RAD", 
+                  "Train_A_RF_BREIMAN", "Train_A_RF_CI", "PredictWithAWeakLearner", 
+                  "Predict_LR_LASSO", "Predict_SVM", "Predict_RF_BREIMAN", "Predict_RF_CI"),
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
         ) %dopar%
@@ -208,6 +212,9 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
       foreach(
         iWinner=(1:length(winnerIndices)), 
         .maxcombine=1e5,
+        .export=c("TrainAWeakLearner", "CON_WEAK_LEARNER_TYPES", "Swap2MakeFirstPositive",
+                  "Train_A_LR_LASSO", "Train_A_SVM_LIN", "Train_A_SVM_RAD", 
+                  "Train_A_RF_BREIMAN", "Train_A_RF_CI"),
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
         ) %dopar%
@@ -283,7 +290,9 @@ PredictWithAnEnsemble <- function(weakLearners, XEval,
     predsAllWeakLearners <- 
       foreach(
         iLearner=(1:length(weakLearners)), .combine="cbind", 
-        .maxcombine=1e5,
+        .maxcombine=1e5, 
+        .export=c("PredictWithAWeakLearner", "CON_WEAK_LEARNER_TYPES", "Predict_LR_LASSO",
+                  "Predict_SVM", "Predict_RF_BREIMAN", "Predict_RF_CI"),
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
         ) %dopar%
