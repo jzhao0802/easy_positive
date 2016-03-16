@@ -339,8 +339,8 @@ SaveEnsemble <- function(resultDir, iEvalFold, winnerLearners)
     writeLines("", fileSummary)
     
     # the models and signatures
-    filename <- paste(resultDir, "WeakLearner", iLearner, "Of", n, 
-                      "_EvalFold", iEvalFold, ".rds")
+    filename <- paste(resultDir, "Winner", iLearner, "Of", n, 
+                      "_EvalFold", iEvalFold, ".rds", sep="")
     saveRDS(winnerLearners[[iLearner]], filename)
   }
   
