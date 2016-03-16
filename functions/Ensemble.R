@@ -10,16 +10,17 @@ library(ROCR)
 source("functions/manualStratify.R")
 source("functions/WeakLearners.R")
 source("functions/Aggregate.R")
+source("functions/MinMaxNormalise.R")
 
-MinMaxStandardise <- function(vec)
-{
-  if (sd(vec) == 0)
-    return (vec)
-  
-  vec <- (vec - min(vec)) / (max(vec) - min(vec))
-  
-  return (vec)
-}
+# MinMaxStandardise <- function(vec)
+# {
+#   if (sd(vec) == 0)
+#     return (vec)
+#   
+#   vec <- (vec - min(vec)) / (max(vec) - min(vec))
+#   
+#   return (vec)
+# }
 
 GenWeakLearnerPool <- function(weakLearnerSeed, posNegRatios, resultDir)
 {
@@ -414,19 +415,11 @@ SelfEvalModel <- function(y, X, posWeights,
     
     # standardise the training + validation data
     
-    XTrainVali <- apply(XTrainVali, 2, MinMaxStandardise)
-    
+    minMaxValMat <- apply(XTrainVali, 2, FindMinMaxOneVar)
+    XTrainVali <- MinMaxNormaliseAllVarsWithGivenMinMaxValues(XTrainVali, minMaxValMat)
     # standardise the evaluation data accordingly
-    
-    for (iVar in 1:ncol(XEval))
-    {
-      r <- max(XTrainVali[, iVar]) - min(XTrainVali[, iVar])
-      if (r != 0)
-      {
-        XEval[, iVar] <- (XEval[, iVar] - min(XTrainVali[, iVar])) / r
-      }
-    }
-    
+    XEval <- MinMaxNormaliseAllVarsWithGivenMinMaxValues(XEval, minMaxValMat)
+
     # 
     
     posWeightsTrainVali <- posWeightsAllData[trainValiIDs]
