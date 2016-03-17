@@ -47,10 +47,13 @@ IS_ORIGINAL_AFTER_BACKTRANSFORM <- function()
   nCols <- round(runif(1, 3, 30))
   dataMat <- matrix(runif(nRows*nCols), nrow=nRows)
   
+  colnames(dataMat) <- 1:ncol(dataMat)
+  
   minMaxMat <- matrix(-1, nrow=2, ncol=nCols)
   minMaxMat[1, ] <- runif(nCols, min=0, max=0.5)
   minMaxMat[2, ] <- runif(nCols, min=0.5, max=1)
   minMaxMat[, 1] <- c(0.5, 0.5)
+  colnames(minMaxMat) <- 1:ncol(minMaxMat)
   
   normalisedDataMat <-
     MinMaxNormaliseAllVarsWithGivenMinMaxValues(dataMat, minMaxMat)
