@@ -51,7 +51,6 @@ GenWeakLearnerPool <- function(weakLearnerSeed, posNegRatios, resultDir)
         writeLines(paste("Positive-Negative Training Data Ratio:", 
                          posNegRatios[iRatio]), file)
         # writeLines("", file)
-        # print(paste("iLearner:", iLearner))
         pool[[iLearner]] <- list(type=modelType)
         if (ncol(allCombinationsThisType) == 1)
         {
@@ -137,7 +136,7 @@ CV_AllWeakLeaners <- function(y, X,
               PredictWithAWeakLearner(model, XVali, learnerSignature)
           }
           
-          predsAllData
+          return (predsAllData)
         }
   } else 
   {
@@ -188,7 +187,7 @@ CV_AllWeakLeaners <- function(y, X,
             PredictWithAWeakLearner(model, XVali, learnerSignature)
         }
         
-        predsAllData
+        return (predsAllData)
       }
   }
   
@@ -240,8 +239,8 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           model <- TrainAWeakLearner(y[trainIDs], X[trainIDs, ], 
                                      posWeightsTrain, learnerSignature)
           
-          list(model=model, 
-               signature=learnerSignature)
+          return (list(model=model, 
+                       signature=learnerSignature))
         }
   } else 
   {
@@ -274,8 +273,8 @@ TrainWinnerLearners <- function(y, X, posWeightsTrainVali,
           model <- TrainAWeakLearner(y[trainIDs], X[trainIDs, ], 
                                      posWeightsTrain, learnerSignature)
           
-          list(model=model, 
-               signature=learnerSignature)
+          return (list(model=model, 
+                       signature=learnerSignature))
         }
   }
   
@@ -300,6 +299,8 @@ PredictWithAnEnsemble <- function(weakLearners, XEval,
         preds <- 
           PredictWithAWeakLearner(weakLearners[[iLearner]]$model, 
                                   XEval, weakLearners[[iLearner]]$signature)
+        
+        return (preds)
       }
   } else 
   {
@@ -314,10 +315,15 @@ PredictWithAnEnsemble <- function(weakLearners, XEval,
         preds <- 
           PredictWithAWeakLearner(weakLearners[[iLearner]]$model, 
                                   XEval, weakLearners[[iLearner]]$signature)
+        
+        return (preds)
       }
   }
   
-  preds <- apply(predsAllWeakLearners, 1, mean)
+  if (is.null(dim(predsAllWeakLearners)))
+    preds <- predsAllWeakLearners
+  else
+    preds <- apply(predsAllWeakLearners, 1, mean)
   
   return (preds)
 }
@@ -362,7 +368,6 @@ SaveEvalResult <- function(resultDir, preds, labels, targetRecall)
 #   write.table(preds, sep=",", 
 #               file=paste(resultDir, "preds.csv", sep=""), 
 #               col.names=T, row.names=F)
-  
   
   predsObj <- prediction(predictions=preds[,2], labels=labels)
   perfPR <- performance(predsObj, measure="prec", x.measure="rec")
