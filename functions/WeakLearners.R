@@ -85,13 +85,13 @@ Train_A_RF_BREIMAN <- function(y, X, classWeights, hyperParams)
 
 Train_A_RF_CI <- function(y, X, observationWeights, hyperParams)
 {
-  data <- cbind(as.factor(y), X)
-
-  model <- cforest(y ~ ., data=data, weights=observationWeights,
-                   controls = cforest_control(savesplitstats = FALSE,
-                                              ntree=hyperParams$nTrees, 
+  dataTrain <- cbind(as.factor(y), as.data.frame(X))
+  colnames(dataTrain)[1] <- "y"
+  
+  model <- cforest(y ~ ., data=dataTrain, weights=observationWeights,
+                   controls = cforest_control(ntree=hyperParams$nTrees, 
                                               mtry=hyperParams$nVarsPerSplit, 
-                                              fraction=1))
+                                              fraction=0.99))
   
   return (model)
 }
@@ -183,8 +183,10 @@ Predict_RF_BREIMAN <- function(model, X)
 
 Predict_RF_CI <- function(model, X)
 {
-  rawPreds <- predict(model, newdata=XTest, type='prob')
+  rawPreds <- predict(model, newdata=as.data.frame(X), type='prob')
   probs <- do.call(rbind, rawPreds)[,2]
+  
+  return (probs)
 }
 
 PredictWithAWeakLearner <- function(model, X, learnerSignature)
