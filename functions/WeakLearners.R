@@ -31,9 +31,7 @@ Swap2MakeFirstPositive <- function(yTrain, trainIDs)
 
 Train_A_LR_LASSO <- function(y, X, observationWeights, hyperParams)
 {
-  logLambdaSeq <- c(hyperParams$logLambda-1, 
-                    hyperParams$logLambda, 
-                    hyperParams$logLambda+1)
+  logLambdaSeq <- c((hyperParams$logLambda-3):(hyperParams$logLambda+3))
   lambdaSeq <- 10^(logLambdaSeq)
   
   model <- glmnet(X,y, family="binomial", 
