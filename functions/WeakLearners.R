@@ -29,6 +29,23 @@ Swap2MakeFirstPositive <- function(yTrain, trainIDs)
   return (trainIDs)
 }
 
+Train_LR_LASSOs <- function(y, X, posWeights, logLambdasUnsorted)
+{
+  posNegRatio <- sum(y==1) / (length(y)-sum(y==1))
+  observationWeights <- rep(1, length(y))
+  observationWeights[y==1] <- observationWeights[y==1] / posNegRatio * posWeights[posWeights>0]
+  
+  logLambdasSorted <- order(logLambdasUnsorted, decreasing=T)
+  # logLambdaSeq <- c(10, (hyperParams$logLambda-3):(hyperParams$logLambda+3))
+  lambdaSeq <- 10^(logLambdasSorted)
+  
+  model <- glmnet(X,y, family="binomial", 
+                  weights=observationWeights,
+                  alpha=1, lambda=lambdaSeq)
+  
+  return (model)
+}
+
 Train_A_LR_LASSO <- function(y, X, observationWeights, hyperParams)
 {
   logLambdaSeq <- c((hyperParams$logLambda-3):(hyperParams$logLambda+3))
@@ -134,12 +151,12 @@ TrainAWeakLearner <- function(y, X,
   } else if (learnerSignature$type == CON_WEAK_LEARNER_TYPES$RF_BREIMAN)
   {
     model <- Train_A_RF_BREIMAN(y=y, X=X, classWeights=weights, 
-                        hyperParams=learnerSignature$hyperParams)
+                                hyperParams=learnerSignature$hyperParams)
     
   } else if (learnerSignature$type == CON_WEAK_LEARNER_TYPES$RF_CI)
   {
     model <- Train_A_RF_CI(y=y, X=X, observationWeights=weights, 
-                        hyperParams=learnerSignature$hyperParams)
+                           hyperParams=learnerSignature$hyperParams)
     
   } else
     stop(paste("Error! Weak learner type ", learnerSignature$type, " is not supported."))
@@ -154,6 +171,14 @@ TrainAWeakLearner <- function(y, X,
 #
 ################################################################################
 
+
+Predict_LR_LASSOs <- function(model, X, logLambdasUnsorted)
+{
+  preds <- 
+    predict(model, newx = X, type="response", s=10^logLambdasUnsorted)
+  
+  return (preds)
+}
 
 Predict_LR_LASSO <- function(model, X, lambda)
 {

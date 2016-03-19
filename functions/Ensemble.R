@@ -26,6 +26,18 @@ GenWeakLearnerPool <- function(weakLearnerSeed, posNegRatios, resultDir)
 {
   file <- file(paste(resultDir, "WeakLearnerPool.txt", sep=""), "w")
   pool <- list()
+  
+  if (is.null(weakLearnerSeed[[CON_WEAK_LEARNER_TYPES$LR_LASSO]]))
+    lassoSkipNonSkipIDs <- NULL
+  else
+  {
+    lassoSkipNonSkipIDs <- 
+      matrix(-1, 
+             ncol=length(posNegRatios), 
+             nrow=nrow(expand.grid(weakLearnerSeed[[CON_WEAK_LEARNER_TYPES$LR_LASSO]])))
+  }
+    
+  
   iLearner <- 1
   for (modelType in names(weakLearnerSeed))
   {
@@ -62,6 +74,14 @@ GenWeakLearnerPool <- function(weakLearnerSeed, posNegRatios, resultDir)
           pool[[iLearner]]$hyperParams <- allCombinationsThisType[iComb, ]
         pool[[iLearner]]$posNegRatio <- posNegRatios[iRatio]
         
+        # LASSO skip / nonskip IDs
+        if (modelType == CON_WEAK_LEARNER_TYPES$LR_LASSO)
+        {
+          # first row: nonskip ID; 
+          # other rows: skip IDs
+          lassoSkipNonSkipIDs[iComb, iRatio] <- iLearner
+        }
+        
         iLearner <- iLearner + 1
       }
     }
@@ -69,13 +89,28 @@ GenWeakLearnerPool <- function(weakLearnerSeed, posNegRatios, resultDir)
   }
   close(file)
   
-  return (pool)
+  return (list(pool=pool,
+               lassoSkipNonSkipIDs=lassoSkipNonSkipIDs))
+}
+
+GetLogLambdasUnsorted <- function(weakLearnerPool, lrlassoLearnerIDs)
+{
+  logLambdas <- rep(1e5, length(lrlassoLearnerIDs))
+  for (iLearner in 1:length(lrlassoLearnerIDs))
+  {
+    learnerID <- lrlassoLearnerIDs[iLearner]
+    learnerSignature <- weakLearnerPool[[learnerID]]
+    logLambdas[iLearner] <- learnerSignature$hyperParams$logLambda
+  }
+  
+  return (logLambdas)
 }
 
 CV_AllWeakLeaners <- function(y, X, 
                               kValiFolds, 
                               posWeightsTrainVali, 
                               weakLearnerPool,
+                              lassoSkipNonSkipIDs, 
                               targetRecall,
                               bParallel)
 {
@@ -90,16 +125,202 @@ CV_AllWeakLeaners <- function(y, X,
         iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
         .maxcombine=1e5,
         .export=c("TrainAWeakLearner", "CON_WEAK_LEARNER_TYPES", "Swap2MakeFirstPositive",
-                  "Train_A_LR_LASSO", "Train_A_SVM_LIN", "Train_A_SVM_RAD", 
+                  "Train_LR_LASSOs", "Train_A_SVM_LIN", "Train_A_SVM_RAD", 
                   "Train_A_RF_BREIMAN", "Train_A_RF_CI", "PredictWithAWeakLearner", 
-                  "Predict_LR_LASSO", "Predict_SVM", "Predict_RF_BREIMAN", "Predict_RF_CI"),
+                  "Predict_LR_LASSOs", "Predict_SVM", "Predict_RF_BREIMAN", "Predict_RF_CI"),
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
         ) %dopar%
         {
+          # if LASSO and this round is the representative of this posNegRatio, 
+          # then compute for all hyper parameters with this posNegRatio
+          if (iLearner %in% lassoSkipNonSkipIDs[1, ]) # first row contains nonSkipIDs
+          {
+            firstLearnerSignature <- weakLearnerPool[[iLearner]]
+            
+            learnerIDsThisPNRatio <- 
+              lassoSkipNonSkipIDs[, lassoSkipNonSkipIDs[1,]==iLearner]
+            nLambdas <- nrow(lassoSkipNonSkipIDs)
+            logLambdasUnsorted <- 
+              GetLogLambdasUnsorted(weakLearnerPool, learnerIDsThisPNRatio)
+            
+            # the last row contains the learner IDs
+            predsAllDataLASSOs <- matrix(1e5, nrow=nrow(X)+1, ncol=nLambdas)
+            
+            for (iFold in 1:kValiFolds)
+            {
+              trainIDs <- valiFolds[[iFold]]
+              valiIDs <- which(!((1:length(y)) %in% trainIDs))
+              yTrain <- y[trainIDs]
+              XTrain <- X[trainIDs,]
+              # validation data extracted before subsampling training
+              XVali <- X[-trainIDs,]
+              yVali <- y[-trainIDs]
+              
+              # sub-sample a fraction of the negatives
+              
+              trainIDsPos <- trainIDs[yTrain == 1]
+              trainIDsNeg <- trainIDs[yTrain == 0]
+              nNegs2Sample <- 
+                ceiling(length(trainIDsPos) / firstLearnerSignature$posNegRatio)
+              if (nNegs2Sample < length(trainIDsNeg))
+              {
+                trainIDsNegSubSampled <- 
+                  sample(trainIDsNeg)[1:nNegs2Sample]
+                trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
+              }
+              
+              yTrain <- y[trainIDs]
+              XTrain <- X[trainIDs, ]
+              posWeightsTrain <- posWeightsTrainVali[trainIDs]
+              
+              # 
+              model <- 
+                Train_LR_LASSOs(y=yTrain, X=XTrain, 
+                                posWeights=posWeightsTrain, 
+                                logLambdasUnsorted=logLambdasUnsorted)
+              
+              predsAllDataLASSOs[valiIDs, ] <- 
+                Predict_LR_LASSOs(model, XVali, logLambdasUnsorted)
+            }
+            
+            # last element is the learner ID
+            predsAllDataLASSOs[nrow(predsAllDataLASSOs), ] <- learnerIDsThisPNRatio
+            
+            return (predsAllDataLASSOs)
+            
+          } else if (iLearner %in% lassoSkipNonSkipIDs[2:nrow(lassoSkipNonSkipIDs), ]) 
+          # if LASSO and this round is NOT the representative of this posNegRatio, 
+          # don't compute anything (skip it)
+          {
+            return (NULL)
+            
+          } else # if not LASSO, compute one learner in every foreach round
+          {
+            learnerSignature <- weakLearnerPool[[iLearner]]
+            
+            # the last element contains the learner ID
+            predsAllData <- rep(1e5, nrow(X)+1)
+            
+            for (iFold in 1:kValiFolds)
+            {
+              trainIDs <- valiFolds[[iFold]]
+              valiIDs <- which(!((1:length(y)) %in% trainIDs))
+              yTrain <- y[trainIDs]
+              XTrain <- X[trainIDs,]
+              # validation data extracted before subsampling training
+              XVali <- X[-trainIDs,]
+              yVali <- y[-trainIDs]
+              
+              # sub-sample a fraction of the negatives
+              
+              trainIDsPos <- trainIDs[yTrain == 1]
+              trainIDsNeg <- trainIDs[yTrain == 0]
+              nNegs2Sample <- 
+                ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
+              if (nNegs2Sample < length(trainIDsNeg))
+              {
+                trainIDsNegSubSampled <- 
+                  sample(trainIDsNeg)[1:nNegs2Sample]
+                trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
+              }
+              
+              yTrain <- y[trainIDs]
+              XTrain <- X[trainIDs, ]
+              posWeightsTrain <- posWeightsTrainVali[trainIDs]
+              
+              # 
+              model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
+                                         learnerSignature)
+              
+              predsAllData[valiIDs] <- 
+                PredictWithAWeakLearner(model, XVali, learnerSignature)
+              # last element is the learner ID
+              predsAllData[length(predsAllData)] <- iLearner
+            }
+            
+            return (predsAllData)
+          }
+        }
+  } else 
+  {
+    predsAllLearners <- 
+      foreach(
+        iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
+        .maxcombine=1e5,
+        .packages=c("glmnet", "e1071", "randomForest", "party", 
+                    "pROC", "pROC")
+      ) %do%
+      {
+        # if LASSO and this round is the representative of this posNegRatio, 
+        # then compute for all hyper parameters with this posNegRatio
+        if (iLearner %in% lassoSkipNonSkipIDs[1, ]) # first row contains nonSkipIDs
+        {
+          firstLearnerSignature <- weakLearnerPool[[iLearner]]
+          
+          learnerIDsThisPNRatio <- 
+            lassoSkipNonSkipIDs[, lassoSkipNonSkipIDs[1,]==iLearner]
+          nLambdas <- nrow(lassoSkipNonSkipIDs)
+          logLambdasUnsorted <- 
+            GetLogLambdasUnsorted(weakLearnerPool, learnerIDsThisPNRatio)
+          
+          # the last row contains the learner IDs
+          predsAllDataLASSOs <- matrix(1e5, nrow=nrow(X)+1, ncol=nLambdas)
+          
+          for (iFold in 1:kValiFolds)
+          {
+            trainIDs <- valiFolds[[iFold]]
+            valiIDs <- which(!((1:length(y)) %in% trainIDs))
+            yTrain <- y[trainIDs]
+            XTrain <- X[trainIDs,]
+            # validation data extracted before subsampling training
+            XVali <- X[-trainIDs,]
+            yVali <- y[-trainIDs]
+            
+            # sub-sample a fraction of the negatives
+            
+            trainIDsPos <- trainIDs[yTrain == 1]
+            trainIDsNeg <- trainIDs[yTrain == 0]
+            nNegs2Sample <- 
+              ceiling(length(trainIDsPos) / firstLearnerSignature$posNegRatio)
+            if (nNegs2Sample < length(trainIDsNeg))
+            {
+              trainIDsNegSubSampled <- 
+                sample(trainIDsNeg)[1:nNegs2Sample]
+              trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
+            }
+            
+            yTrain <- y[trainIDs]
+            XTrain <- X[trainIDs, ]
+            posWeightsTrain <- posWeightsTrainVali[trainIDs]
+            
+            # 
+            model <- 
+              Train_LR_LASSOs(y=yTrain, X=XTrain, 
+                              posWeights=posWeightsTrain, 
+                              logLambdasUnsorted=logLambdasUnsorted)
+            
+            predsAllDataLASSOs[valiIDs, ] <- 
+              Predict_LR_LASSOs(model, XVali, logLambdasUnsorted)
+          }
+          
+          # last element is the learner ID
+          predsAllDataLASSOs[nrow(predsAllDataLASSOs), ] <- learnerIDsThisPNRatio
+          
+          return (predsAllDataLASSOs)
+          
+        } else if (iLearner %in% lassoSkipNonSkipIDs[2:nrow(lassoSkipNonSkipIDs), ]) 
+          # if LASSO and this round is NOT the representative of this posNegRatio, 
+          # don't compute anything (skip it)
+        {
+          return (NULL)
+          
+        } else # if not LASSO, compute one learner in every foreach round
+        {
           learnerSignature <- weakLearnerPool[[iLearner]]
           
-          predsAllData <- rep(1e5, nrow(X))
+          # the last element contains the learner ID
+          predsAllData <- rep(1e5, nrow(X)+1)
           
           for (iFold in 1:kValiFolds)
           {
@@ -134,63 +355,19 @@ CV_AllWeakLeaners <- function(y, X,
             
             predsAllData[valiIDs] <- 
               PredictWithAWeakLearner(model, XVali, learnerSignature)
+            # last element is the learner ID
+            predsAllData[length(predsAllData)] <- iLearner
           }
           
           return (predsAllData)
         }
-  } else 
-  {
-    predsAllLearners <- 
-      foreach(
-        iLearner=(1:length(weakLearnerPool)), .combine="cbind", 
-        .maxcombine=1e5,
-        .packages=c("glmnet", "e1071", "randomForest", "party", 
-                    "pROC", "pROC")
-      ) %do%
-      {
-        learnerSignature <- weakLearnerPool[[iLearner]]
-        
-        predsAllData <- rep(1e5, nrow(X))
-        
-        for (iFold in 1:kValiFolds)
-        {
-          trainIDs <- valiFolds[[iFold]]
-          valiIDs <- which(!((1:length(y)) %in% trainIDs))
-          yTrain <- y[trainIDs]
-          XTrain <- X[trainIDs,]
-          # validation data extracted before subsampling training
-          XVali <- X[-trainIDs,]
-          yVali <- y[-trainIDs]
-          
-          # sub-sample a fraction of the negatives
-          
-          trainIDsPos <- trainIDs[yTrain == 1]
-          trainIDsNeg <- trainIDs[yTrain == 0]
-          nNegs2Sample <- 
-            ceiling(length(trainIDsPos) / learnerSignature$posNegRatio)
-          if (nNegs2Sample < length(trainIDsNeg))
-          {
-            trainIDsNegSubSampled <- 
-              sample(trainIDsNeg)[1:nNegs2Sample]
-            trainIDs <- c(trainIDsPos, trainIDsNegSubSampled)
-          }
-          
-          yTrain <- y[trainIDs]
-          XTrain <- X[trainIDs, ]
-          posWeightsTrain <- posWeightsTrainVali[trainIDs]
-          
-          # 
-          model <- TrainAWeakLearner(yTrain, XTrain, posWeightsTrain,
-                                     learnerSignature)
-          
-          predsAllData[valiIDs] <- 
-            PredictWithAWeakLearner(model, XVali, learnerSignature)
-        }
-        
-        return (predsAllData)
       }
   }
   
+  # sort the predictions from different learners according to their IDs
+  predsAllLearners <- predsAllLearners[, order(predsAllLearners[nrow(predsAllLearners),])]
+  # remove the last row learner IDs
+  predsAllLearners <- predsAllLearners[1:(nrow(predsAllLearners)-1), ]
   
   # before returning, select the top 5% using accuracy + independence
   winnerPortion <- 0.05
@@ -368,7 +545,6 @@ SaveEvalResult <- function(resultDir, preds, labels, targetRecall)
 #   write.table(preds, sep=",", 
 #               file=paste(resultDir, "preds.csv", sep=""), 
 #               col.names=T, row.names=F)
-  
   predsObj <- prediction(predictions=preds[,2], labels=labels)
   perfPR <- performance(predsObj, measure="prec", x.measure="rec")
   write.table(cbind(perfPR@x.values[[1]],perfPR@y.values[[1]]), sep=",", 
@@ -427,7 +603,7 @@ SelfEvalModel <- function(y, X, posWeights,
   # 'purer / easier' positive patients;
   evalFolds <- StratifyEasyDifficultPositives(y, posWeightsAllData, kEvalFolds)
   
-  weakLearnerPool <- 
+  weakLearnerInventoryStruct <- 
     GenWeakLearnerPool(weakLearnerSeed, posNegRatios, resultDir)
   
   #
@@ -437,6 +613,7 @@ SelfEvalModel <- function(y, X, posWeights,
   
   for (iEvalFold in 1:length(evalFolds))
   {
+    print(paste("eval fold:", iEvalFold))
     trainValiIDs <- evalFolds[[iEvalFold]]
     yTrainVali <- y[trainValiIDs]
     
@@ -468,7 +645,8 @@ SelfEvalModel <- function(y, X, posWeights,
       CV_AllWeakLeaners(y=yTrainVali, X=XTrainVali, 
                         kValiFolds=kValiFolds, 
                         posWeightsTrainVali=posWeightsTrainVali, 
-                        weakLearnerPool=weakLearnerPool,
+                        weakLearnerPool=weakLearnerInventoryStruct$pool,
+                        lassoSkipNonSkipIDs=weakLearnerInventoryStruct$lassoSkipNonSkipIDs,
                         targetRecall=targetRecall,
                         bParallel=bParallel)
     
@@ -476,7 +654,7 @@ SelfEvalModel <- function(y, X, posWeights,
     winnerLearners <- 
       TrainWinnerLearners(y=yTrainVali, X=XTrainVali, 
                           posWeightsTrainVali=posWeightsTrainVali, 
-                          weakLearnerPool=weakLearnerPool,
+                          weakLearnerPool=weakLearnerInventoryStruct$pool,
                           winnerIndices=winnerIndices,
                           bParallel=bParallel)
     
