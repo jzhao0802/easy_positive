@@ -127,7 +127,8 @@ CV_AllWeakLeaners <- function(y, X,
         .export=c("TrainAWeakLearner", "CON_WEAK_LEARNER_TYPES", "Swap2MakeFirstPositive",
                   "Train_LR_LASSOs", "Train_A_SVM_LIN", "Train_A_SVM_RAD", 
                   "Train_A_RF_BREIMAN", "Train_A_RF_CI", "PredictWithAWeakLearner", 
-                  "Predict_LR_LASSOs", "Predict_SVM", "Predict_RF_BREIMAN", "Predict_RF_CI"),
+                  "Predict_LR_LASSOs", "Predict_SVM", "Predict_RF_BREIMAN", "Predict_RF_CI", 
+                  "GetLogLambdasUnsorted"),
         .packages=c("glmnet", "e1071", "randomForest", "party", 
                     "pROC", "pROC")
         ) %dopar%
