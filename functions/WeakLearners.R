@@ -39,9 +39,12 @@ Train_LR_LASSOs <- function(y, X, posWeights, logLambdasUnsorted)
   # logLambdaSeq <- c(10, (hyperParams$logLambda-3):(hyperParams$logLambda+3))
   lambdaSeq <- 10^(logLambdasSorted)
   
+#   model <- glmnet(X,y, family="binomial", 
+#                   weights=observationWeights,
+#                   alpha=1, lambda=lambdaSeq)
   model <- glmnet(X,y, family="binomial", 
                   weights=observationWeights,
-                  alpha=1, lambda=lambdaSeq)
+                  alpha=1)
   
   return (model)
 }
